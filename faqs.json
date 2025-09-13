@@ -1,0 +1,42 @@
+[
+  {
+    "id": "faq_hours",
+    "title": "Hours",
+    "questions": [
+      "What are your hours?",
+      "When are you open?"
+    ],
+    "answer": "We're open daily from 11 AM – 10 PM, and until 11 PM on Fridays and Saturdays.",
+    "tags": ["hours", "schedule"]
+  },
+  {
+    "id": "faq_menu",
+    "title": "Menu",
+    "questions": [
+      "Do you have vegan options?",
+      "Is there gluten-free food?"
+    ],
+    "answer": "Yes! We offer vegan pasta, salads, and gluten-free pizza crusts.",
+    "tags": ["menu", "dietary"]
+  },
+  {
+    "id": "faq_reservations",
+    "title": "Reservations",
+    "questions": [
+      "Do I need a reservation?",
+      "Can I book a table?"
+    ],
+    "answer": "Reservations are recommended on weekends. You can call (555) 123-4567 to book.",
+    "tags": ["reservations", "booking"]
+  },
+  {
+    "id": "faq_parking",
+    "title": "Parking",
+    "questions": [
+      "Do you have parking?",
+      "Where can I park?"
+    ],
+    "answer": "Yes, we offer free parking behind the restaurant.",
+    "tags": ["parking", "location"]
+  }
+]
