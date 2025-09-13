@@ -1,0 +1,13 @@
+{
+  "botName": "Bellas Bistro Assistant",
+  "primaryColor": "#2e8b57",
+  "secondaryColor": "#1d4ed8",
+  "logoUrl": "/clients/demo/logo.png",
+  "fontFamily": "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+  "fallbackContact": {
+    "phone": "(555) 123-4567",
+    "email": "info@bellasbistro.com"
+  },
+  "tone": "friendly, professional, concise"
+}
+
