@@ -1,5 +1,14 @@
 # Demo Test Plan
 
+DOD:
+Runs with all files in sample_inputs/ without crashing.
+
+Verbose toggle changes visible output.
+
+Empty query shows friendly (non-blocking) message.
+
+Passes UI Smoke Test: no console errors; responsive at 375/768/1024/1440.
+
 ## Inputs to Test
 - Input 1: [describe]
 - Input 2: [describe]
@@ -22,6 +31,7 @@
 - For `input_verbose.json`, output includes additional information/expanded details compared to the basic case.
 - For `input_edgecase.json`, the demo handles the empty query gracefully (clear error message or defined fallback).
 - Execution and output are consistent across different environments (local, cloud, etc.).
+
 ## UI Acceptance Criteria
 
 ### A. Cross-browser basic sanity

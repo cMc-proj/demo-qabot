@@ -37,6 +37,16 @@ Protect main (no force‑push); merge via PR only.
 - ⏳ Optional: refactor responders into `src/hive/*.js` for cleaner structure.  
 - ⏳ Add Jest/supertest for testing and Postman collection for dev support.  
 
+## Backend Setup (as of Sept 14)
+
+- The backend now lives in `/api` inside this repo.
+- To run it locally:
+  ```powershell
+  cd api
+  npm install   # only first time
+  npm start
+
+
 ### Next Steps
 - Owen: implement frontend fetch call, input field, mode dropdown, and error/uncertainty handling.
 - Jackson: standby for testing and provide CORS/env support if Owen’s setup differs.
