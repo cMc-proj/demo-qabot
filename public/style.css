@@ -125,76 +125,98 @@ p.muted {
   background: #f0f0f0;
   border-top: 1px solid #e0e0e0;
 }
-/* Chat Widget */
+/* Industry Chat Window */
 .industry-chat {
-  background: #fff; /* solid background instead of translucent */
-  border: 1px solid #ccc;
-  border-radius: 0.75rem;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  position: fixed;
+  bottom: 90px;
+  right: 20px;
   width: 320px;
-  height: 450px;
-  display: flex;
+  max-height: 500px;
+  background: #1a1a1a;
+  color: white;
+  border-radius: 12px;
+  display: none; /* hidden by default */
   flex-direction: column;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+  z-index: 9999;
   overflow: hidden;
-  color: #222; /* strong readable text */
 }
 
 .industry-chat-header {
-  background: #2d3748; /* dark header for contrast */
-  color: #fff;
-  padding: 0.75rem 1rem;
-  font-weight: 600;
-  font-size: 1rem;
-}
-
-#messages {
-  flex: 1;
-  padding: 1rem;
-  overflow-y: auto;
-  background: #fafafa;
-  color: #222; /* darker text */
-}
-
-#messages .bot {
-  background: #f4f8f9;
-  padding: 0.75rem;
-  border-radius: 0.5rem;
-  margin-bottom: 0.5rem;
-}
-
-#messages .user {
-  background: #e6f7ff;
-  padding: 0.75rem;
-  border-radius: 0.5rem;
-  margin-bottom: 0.5rem;
-  text-align: right;
-}
-
-.chat-input {
+  background: #000;
+  padding: 10px;
+  font-weight: bold;
+  text-align: center;
+  color: #22c55e;
   display: flex;
-  border-top: 1px solid #ddd;
+  justify-content: space-between;
+  align-items: center;
 }
 
-#user-input {
+.industry-messages {
   flex: 1;
-  padding: 0.75rem;
+  overflow-y: auto;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.cmc-bubble {
+  padding: 8px 12px;
+  border-radius: 12px;
+  max-width: 80%;
+  animation: fadeInUp 0.3s ease;
+}
+
+.cmc-user {
+  align-self: flex-end;
+  background: #22c55e;
+  color: black;
+}
+
+.cmc-bot {
+  align-self: flex-start;
+  background: #333;
+  color: white;
+}
+
+.industry-input {
+  display: flex;
+  border-top: 1px solid #333;
+}
+
+.industry-input input {
+  flex: 1;
   border: none;
+  padding: 10px;
+  background: #111;
+  color: white;
   outline: none;
-  font-size: 0.95rem;
-  color: #222;
-  background: #fff;
 }
 
-#send-btn {
-  background: #4CAF50;
+.industry-input button {
+  background: #22c55e;
+  color: black;
   border: none;
-  color: #fff;
-  padding: 0 1.25rem;
+  padding: 0 16px;
   cursor: pointer;
-  font-weight: 600;
-  transition: background 0.2s ease;
+  font-weight: bold;
 }
 
-#send-btn:hover {
-  background: #43a047;
+.close-btn {
+  cursor: pointer;
+  color: #aaa;
+  font-size: 14px;
+}
+
+.close-btn:hover {
+  color: #fff;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
