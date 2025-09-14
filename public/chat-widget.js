@@ -1,34 +1,30 @@
-let currentMode = "general"; // default mode
-
-// Create a single reusable chat window
-function initChat() {
+// Utility: create a chat window for each industry
+function createChatWindow(industry, label, emoji) {
   const chat = document.createElement("div");
-  chat.className = "industry-chat";
-  chat.id = "chat-window";
-  chat.style.display = "none"; // hidden by default
+  chat.className = "industry-chat hidden";
+  chat.id = `chat-${industry}`;
 
   chat.innerHTML = `
     <header class="industry-chat-header">
-      <span id="chat-title">💬 General Assistant</span>
-      <span class="close-btn">✖</span>
+      <span>${emoji} ${label} Assistant</span>
+      <span class="close-btn" data-industry="${industry}">✖</span>
     </header>
-    <div class="industry-messages" id="messages">
-      <div class="cmc-bot cmc-bubble">Welcome — select an industry bubble to get started.</div>
+    <div class="industry-messages" id="messages-${industry}">
+      <div class="cmc-bot cmc-bubble">Welcome to the ${label} assistant — ask me anything.</div>
     </div>
     <div class="industry-input">
-      <input type="text" id="chat-input" placeholder="Type your message..." />
-      <button id="chat-send">➤</button>
+      <input type="text" id="input-${industry}" placeholder="Type your message..." />
+      <button id="send-${industry}">➤</button>
     </div>
   `;
 
   document.body.appendChild(chat);
 
-  const input = chat.querySelector("#chat-input");
-  const sendBtn = chat.querySelector("#chat-send");
-  const messages = chat.querySelector("#messages");
-  const closeBtn = chat.querySelector(".close-btn");
+  const input = chat.querySelector(`#input-${industry}`);
+  const sendBtn = chat.querySelector(`#send-${industry}`);
+  const messages = chat.querySelector(`#messages-${industry}`);
+  const closeBtn = chat.querySelector(`.close-btn`);
 
-  // Append messages to chat
   function appendMessage(role, text) {
     const div = document.createElement("div");
     div.className = `cmc-bubble cmc-${role}`;
@@ -37,7 +33,6 @@ function initChat() {
     messages.scrollTop = messages.scrollHeight;
   }
 
-  // Send a message to backend
   async function sendMessage() {
     const text = input.value.trim();
     if (!text) return;
@@ -50,7 +45,7 @@ function initChat() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           query: text,
-          mode: currentMode,   // 🔑 updated on bubble click
+          mode: industry,   // 🔑 industry locked to this chat
           verbose: false
         })
       });
@@ -67,30 +62,26 @@ function initChat() {
     }
   }
 
-  // Listeners
   sendBtn.onclick = sendMessage;
   input.addEventListener("keypress", e => {
     if (e.key === "Enter") sendMessage();
   });
-  closeBtn.onclick = () => chat.style.display = "none";
+  closeBtn.onclick = () => chat.classList.add("hidden");
 }
 
-// Initialize once
-initChat();
+// Create one chat window per industry
+createChatWindow("restaurant", "Restaurant", "🍽️");
+createChatWindow("retail", "Retail", "🛍️");
+createChatWindow("ecommerce", "E-commerce", "💻");
+createChatWindow("medical", "Medical", "🏥");
 
-// Attach bubble click listeners
+// Bubble click listeners: show only the relevant chat
 document.querySelectorAll(".chat-bubble").forEach(bubble => {
   bubble.addEventListener("click", () => {
-    currentMode = bubble.id; // restaurant, retail, ecommerce, medical
-    const chat = document.getElementById("chat-window");
-    const title = document.getElementById("chat-title");
-
-    // Update assistant title dynamically
-    const emoji = bubble.textContent.split(" ")[0];
-    const label = bubble.textContent.replace(emoji, "").trim();
-    title.textContent = `${emoji} ${label} Assistant`;
-
-    // Show chat
-    chat.style.display = "flex";
+    const industry = bubble.id;
+    // Hide all chats
+    document.querySelectorAll(".industry-chat").forEach(c => c.classList.add("hidden"));
+    // Show selected one
+    document.getElementById(`chat-${industry}`).classList.remove("hidden");
   });
 });
