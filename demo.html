@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>AI Demo Hub</title>
+  <style>
+    body { font-family: sans-serif; margin: 0; }
+    header { background: #111; color: white; padding: 1rem; text-align: center; }
+    .tabs { display: flex; justify-content: center; margin: 1rem 0; }
+    .tab { padding: 0.5rem 1rem; margin: 0 0.25rem; cursor: pointer; background: #eee; border-radius: 6px; }
+    .tab.active { background: #111; color: white; }
+    #ai-chat-bubble { position: fixed; bottom: 20px; left: 20px; }
+    .bubble-box {
+      width: 280px; height: 400px; background: white;
+      border: 1px solid #ccc; border-radius: 12px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      display: flex; flex-direction: column;
+    }
+    .bubble-header {
+      padding: 8px; background: #111; color: white;
+      border-top-left-radius: 12px; border-top-right-radius: 12px;
+    }
+    .bubble-messages { flex: 1; padding: 8px; overflow-y: auto; font-size: 14px; }
+    .bubble-input { padding: 8px; border-top: 1px solid #eee; }
+    .bubble-input input {
+      width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 6px;
+    }
+    .msg { margin: 4px 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>AI Demo Hub</h1>
+    <p>One AI. Any Industry.</p>
+  </header>
+
+  <div class="tabs">
+    <div class="tab active" onclick="switchDemo('ecom', event)">🛒 E-Commerce</div>
+    <div class="tab" onclick="switchDemo('restaurant', event)">🍽️ Restaurant</div>
+    <div class="tab" onclick="switchDemo('retail', event)">🏬 Retail</div>
+  </div>
+
+  <div id="ai-chat-bubble"></div>
+
+  <script>
+    window.AIChatBubble = {
+      init: function(config) {
+        const container = document.getElementById("ai-chat-bubble");
+        container.innerHTML = `
+          <div class="bubble-box">
+            <div class="bubble-header">${config.brand} Assistant</div>
+            <div id="chat-window" class="bubble-messages"></div>
+            <div class="bubble-input">
+              <input id="chat-input" placeholder="Ask me something..." />
+            </div>
+          </div>
+        `;
+
+        const input = container.querySelector("#chat-input");
+        const chatWindow = container.querySelector("#chat-window");
+
+        function addMessage(sender, text) {
+          const msg = document.createElement("div");
+          msg.className = "msg";
+          msg.innerHTML = `<b>${sender}:</b> ${text}`;
+          chatWindow.appendChild(msg);
+          chatWindow.scrollTop = chatWindow.scrollHeight;
+        }
+
+        // preload example prompts
+        if (config.examplePrompts) {
+          config.examplePrompts.forEach(p => addMessage("Example", p));
+        }
+
+        async function handleSend(userText) {
+          addMessage("You", userText);
+
+          try {
+            const res = await fetch("/api/chat", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                message: userText,
+                context: config.brand
+              })
+            });
+
+            if (!res.ok) throw new Error("API error");
+            const data = await res.json();
+            addMessage(config.brand, data.reply);
+          } catch (err) {
+            // fallback to mockResponses
+            let reply = "⚠️ AI backend unavailable. Showing fallback.";
+            for (const key in config.mockResponses) {
+              if (userText.toLowerCase().includes(key)) {
+                reply = config.mockResponses[key];
+                break;
+              }
+            }
+            addMessage(config.brand, reply);
+          }
+        }
+
+        input.addEventListener("keydown", e => {
+          if (e.key === "Enter" && input.value.trim()) {
+            handleSend(input.value.trim());
+            input.value = "";
+          }
+        });
+      }
+    };
+
+    const demos = {
+      ecom: {
+        brand: "ShopSmart",
+        examplePrompts: [
+          "Show me sneakers under $100 with free shipping",
+          "What’s the return policy for electronics?",
+          "Recommend a gift for my dad who loves hiking"
+        ],
+        mockResponses: {
+          "sneakers": `Here are sneakers under $100: Nike Air Zoom ($89), Adidas RunFast ($75)`,
+          "return policy": `Electronics can be returned within 30 days if unopened.`,
+          "gift for my dad": `Try a hiking backpack ($95) or waterproof boots ($99).`
+        }
+      },
+      restaurant: {
+        brand: "TableNow",
+        examplePrompts: [
+          "Book a table for 4 tonight at 7pm",
+          "What’s on the vegan menu?",
+          "Can I get delivery to 123 Main St?"
+        ],
+        mockResponses: {
+          "table for 4": `✅ Reserved a table for 4 at 7:00 PM.`,
+          "vegan menu": `Vegan menu: Roasted Cauliflower Steak, Lentil Soup, Vegan Tacos`,
+          "delivery": `Yes! We deliver to 123 Main St. Fee $5, ETA 30 mins.`
+        }
+      },
+      retail: {
+        brand: "CityStyle",
+        examplePrompts: [
+          "Is the blue hoodie available at the SoHo location?",
+          "What’s your return policy in-store?",
+          "Find me men’s jackets under $150"
+        ],
+        mockResponses: {
+          "blue hoodie": `✅ In stock at SoHo and Brooklyn.`,
+          "return policy": `Items returnable in-store within 14 days with receipt.`,
+          "men’s jackets": `Jackets under $150: Denim ($120), Puffer ($140), Windbreaker ($95).`
+        }
+      }
+    };
+
+    function switchDemo(type, event) {
+      document.querySelectorAll(".tab").forEach(tab => tab.classList.remove("active"));
+      event.target.classList.add("active");
+      AIChatBubble.init(demos[type]);
+    }
+
+    // load ecommerce by default
+    AIChatBubble.init(demos.ecom);
+  </script>
+</body>
+</html>
+
