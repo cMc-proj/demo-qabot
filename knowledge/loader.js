@@ -17,16 +17,20 @@ function loadMarkdown(filePath) {
 }
 
 /**
- * Load knowledge for a single tenant.
+ * Load all .md files for a single tenant.
  */
 async function loadTenant(tenantId, tenantPath) {
-  const faqsPath = path.join(tenantPath, "faqs.md");
-  const hoursPath = path.join(tenantPath, "hours.md");
+  const files = fs
+    .readdirSync(tenantPath, { withFileTypes: true })
+    .filter((dirent) => dirent.isFile() && dirent.name.endsWith(".md"));
 
-  const tenantKnowledge = {
-    faqs: fs.existsSync(faqsPath) ? loadMarkdown(faqsPath) : "",
-    hours: fs.existsSync(hoursPath) ? loadMarkdown(hoursPath) : "",
-  };
+  const tenantKnowledge = {};
+
+  for (const file of files) {
+    const key = path.basename(file.name, ".md"); // e.g. "faqs.md" -> "faqs"
+    const filePath = path.join(tenantPath, file.name);
+    tenantKnowledge[key] = loadMarkdown(filePath);
+  }
 
   kbIndex[tenantId] = tenantKnowledge;
   console.log(`✅ Loaded knowledge for tenant: ${tenantId}`);
