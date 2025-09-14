@@ -36,13 +36,13 @@ const SSL_CERT_PATH = process.env.SSL_CERT_PATH || "./certs/cert.pem";
 
 const axios = require("axios");
 
-// Chat endpoint (with tenant facts + hive placeholder + debug logging)
-app.post("/api/chat", async (req, res) => {
+// Shared handler for chat/ask endpoints
+async function handleAsk(req, res) {
   try {
-    const { message, tenantId = "default" } = req.body;
+  const { message, tenantId = "default", mode = "default" } = req.body;
 
     // Debug logs
-    console.log("🔎 Incoming chat request:", { tenantId, message });
+    console.log("🔎 Incoming chat request:", { tenantId, mode, message });
     console.log("🔑 API Key (truncated):", process.env.OPENAI_API_KEY?.slice(0, 8));
 
     if (!message) {
@@ -72,7 +72,8 @@ app.post("/api/chat", async (req, res) => {
           {
             role: "system",
             content: `You are a helpful AI assistant for tenant: ${tenantId}.
-            
+Mode: ${mode}
+
 Tenant Facts (must follow strictly):
 ${facts}
 
@@ -101,7 +102,11 @@ ${hiveMindContext}`,
     // ⚠️ TEMP: send debug back to frontend
     res.status(500).json({ error: `Debug: ${errorMsg}` });
   }
-});
+}
+
+// Chat endpoints
+app.post("/api/chat", handleAsk);
+app.post("/api/ask", handleAsk);
 
 const path = require("path");
 
