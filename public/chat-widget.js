@@ -1,94 +1,120 @@
-// Utility: create a chat window for each industry
-function createChatWindow(industry, label, emoji) {
-  const chat = document.createElement("div");
-  chat.className = "industry-chat hidden";
-  chat.id = `chat-${industry}`;
+(() => {
+  const API_BASE_URL = "/api/chat";
 
-  chat.innerHTML = `
-    <header class="industry-chat-header">
-      <span>${emoji} ${label} Assistant</span>
-      <span class="close-btn" data-industry="${industry}">✖</span>
-    </header>
-    <div class="industry-messages" id="messages-${industry}">
-      <div class="cmc-bot cmc-bubble">Welcome to the ${label} assistant — ask me anything.</div>
-    </div>
-    <div class="industry-input">
-      <input type="text" id="input-${industry}" placeholder="Type your message..." />
-      <button id="send-${industry}">➤</button>
-    </div>
-  `;
+  // Industries & their labels
+  const INDUSTRIES = {
+    restaurant: "Restaurant Assistant",
+    retail: "Retail Assistant",
+    ecommerce: "E-commerce Assistant",
+    medical: "Medical Assistant",
+  };
 
-  document.body.appendChild(chat);
+  // Store chat windows by industry
+  const chatWindows = {};
 
-  const input = chat.querySelector(`#input-${industry}`);
-  const sendBtn = chat.querySelector(`#send-${industry}`);
-  const messages = chat.querySelector(`#messages-${industry}`);
-  const closeBtn = chat.querySelector(`.close-btn`);
+  function createChatWindow(industry) {
+    if (chatWindows[industry]) return chatWindows[industry];
 
-  function appendMessage(role, text) {
-    const div = document.createElement("div");
-    div.className = `cmc-bubble cmc-${role}`;
-    div.innerText = text;
-    messages.appendChild(div);
-    messages.scrollTop = messages.scrollHeight;
-  }
+    const wrapper = document.createElement("div");
+    wrapper.className = "chat-window";
+    wrapper.style.position = "fixed";
+    wrapper.style.bottom = "90px";
+    wrapper.style.right = "20px";
+    wrapper.style.width = "320px";
+    wrapper.style.height = "420px";
+    wrapper.style.background = "#111";
+    wrapper.style.color = "#fff";
+    wrapper.style.borderRadius = "12px";
+    wrapper.style.display = "flex";
+    wrapper.style.flexDirection = "column";
+    wrapper.style.overflow = "hidden";
+    wrapper.style.zIndex = "9999";
+    wrapper.style.boxShadow = "0 6px 16px rgba(0,0,0,0.3)";
 
-  async function sendMessage() {
-  const text = input.value.trim();
-  if (!text) return;
-  appendMessage("user", text);
-  input.value = "";
+    wrapper.innerHTML = `
+      <div style="background:#000; padding:10px; display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-weight:bold; color:#7fff00">${INDUSTRIES[industry]}</span>
+        <button class="chat-close" style="background:none;border:none;color:#fff;font-size:18px;cursor:pointer;">✕</button>
+      </div>
+      <div class="chat-messages" style="flex:1; padding:10px; overflow-y:auto; font-size:14px;"></div>
+      <div style="display:flex; border-top:1px solid #333;">
+        <input type="text" class="chat-input" placeholder="Type your message..." 
+          style="flex:1; padding:10px; border:none; background:#222; color:#fff;"/>
+        <button class="chat-send" style="background:#22c55e;color:#000;border:none;padding:0 16px;cursor:pointer;">Send</button>
+      </div>
+    `;
 
-  try {
-    const res = await fetch("/api/ask", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        query: text,
-        mode: industry,   // or currentMode depending on your setup
-        verbose: false
-      })
-    });
+    document.body.appendChild(wrapper);
 
-    const data = await res.json();
-    console.log("🔎 API response:", data); // 👈 add this
+    // Elements
+    const closeBtn = wrapper.querySelector(".chat-close");
+    const sendBtn = wrapper.querySelector(".chat-send");
+    const input = wrapper.querySelector(".chat-input");
+    const messages = wrapper.querySelector(".chat-messages");
 
-    if (data.error) {
-      appendMessage("bot", `⚠️ ${data.error.message}`);
-    } else if (data.answer) {
-      appendMessage("bot", data.answer);
-    } else if (data.reply) {
-      appendMessage("bot", data.reply);
-    } else {
-      appendMessage("bot", "⚠️ Unexpected response format.");
+    function appendMessage(sender, text) {
+      const div = document.createElement("div");
+      div.style.marginBottom = "8px";
+      div.innerHTML = `<strong>${sender}:</strong> ${text}`;
+      messages.appendChild(div);
+      messages.scrollTop = messages.scrollHeight;
     }
-  } catch (err) {
-    appendMessage("bot", "⚠️ Error connecting to server.");
-    console.error("Chat error:", err);
+
+    async function sendMessage() {
+      const text = input.value.trim();
+      if (!text) return;
+      appendMessage("You", text);
+      input.value = "";
+
+      const loading = document.createElement("div");
+      loading.innerHTML = `<em>${INDUSTRIES[industry]} is typing…</em>`;
+      messages.appendChild(loading);
+
+      try {
+        const res = await fetch(API_BASE_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: text, tenantId: industry }),
+        });
+        const data = await res.json();
+        messages.removeChild(loading);
+
+        if (data.error) {
+          appendMessage("⚠️ Error", data.error);
+        } else if (data.reply) {
+          appendMessage(INDUSTRIES[industry], data.reply);
+        } else if (data.answer) {
+          appendMessage(INDUSTRIES[industry], data.answer);
+        } else {
+          appendMessage(INDUSTRIES[industry], "⚠️ Unexpected response format.");
+        }
+      } catch (err) {
+        messages.removeChild(loading);
+        appendMessage("⚠️ Error", "Could not reach server.");
+        console.error("Chat error:", err);
+      }
+    }
+
+    sendBtn.onclick = sendMessage;
+    input.addEventListener("keypress", e => {
+      if (e.key === "Enter") sendMessage();
+    });
+    closeBtn.onclick = () => (wrapper.style.display = "none");
+
+    chatWindows[industry] = wrapper;
+    return wrapper;
   }
-}
 
+  // Attach listeners to industry bubbles
+  window.addEventListener("DOMContentLoaded", () => {
+    Object.keys(INDUSTRIES).forEach(industry => {
+      const bubble = document.getElementById(industry);
+      if (!bubble) return;
 
-  sendBtn.onclick = sendMessage;
-  input.addEventListener("keypress", e => {
-    if (e.key === "Enter") sendMessage();
+      bubble.addEventListener("click", () => {
+        const win = createChatWindow(industry);
+        win.style.display = "flex";
+      });
+    });
   });
-  closeBtn.onclick = () => chat.classList.add("hidden");
-}
-
-// Create one chat window per industry
-createChatWindow("restaurant", "Restaurant", "🍽️");
-createChatWindow("retail", "Retail", "🛍️");
-createChatWindow("ecommerce", "E-commerce", "💻");
-createChatWindow("medical", "Medical", "🏥");
-
-// Bubble click listeners: show only the relevant chat
-document.querySelectorAll(".chat-bubble").forEach(bubble => {
-  bubble.addEventListener("click", () => {
-    const industry = bubble.id;
-    // Hide all chats
-    document.querySelectorAll(".industry-chat").forEach(c => c.classList.add("hidden"));
-    // Show selected one
-    document.getElementById(`chat-${industry}`).classList.remove("hidden");
-  });
-});
+})();
