@@ -13,6 +13,8 @@
 - Project scaffolding created (backend + frontend folders).  
 - Environment set up with `.env` file.  
 - ✅ PROJECT_NOTES.md file created.
+- ✅ meetings/ folder created in repo for storing meeting notes.
+
 
 ---
 
@@ -44,6 +46,8 @@
 - 9/14: Agreed Jackson focuses backend, Owen focuses frontend, infra shared.  
 - 9/14: Copied `tenants/tableNow/config.json.txt` into main repo; deleted old duplicate project folder.  
 - 9/14: Created PROJECT_NOTES.md to serve as shared log for team.
+- 9/14: Created meetings/ folder in repo to hold raw meeting notes (.docx, .pdf).
+
 
 
 ---
