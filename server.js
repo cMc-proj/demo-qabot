@@ -26,6 +26,44 @@ const PORT = process.env.PORT || 3000;
 const SSL_KEY_PATH = process.env.SSL_KEY_PATH || "./certs/key.pem";
 const SSL_CERT_PATH = process.env.SSL_CERT_PATH || "./certs/cert.pem";
 
+const axios = require("axios");
+
+// Chat endpoint
+app.post("/api/chat", async (req, res) => {
+  try {
+    const { message, tenantId = "default" } = req.body;
+
+    if (!message) {
+      return res.status(400).json({ error: "Message is required" });
+    }
+
+    // Example: call OpenAI
+    const response = await axios.post(
+      "https://api.openai.com/v1/chat/completions",
+      {
+        model: "gpt-4o-mini", // or gpt-4o, depending on your plan
+        messages: [
+          { role: "system", content: `You are a helpful AI assistant for tenant: ${tenantId}` },
+          { role: "user", content: message },
+        ],
+      },
+      {
+        headers: {
+          "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    const reply = response.data.choices[0].message.content;
+    res.json({ reply });
+  } catch (err) {
+    console.error("Chat API error:", err.response?.data || err.message);
+    res.status(500).json({ error: "Failed to get response from AI" });
+  }
+});
+
+
 // --- Server Startup ---
 async function startServer() {
   await warmAllTenants();
