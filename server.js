@@ -103,6 +103,14 @@ ${hiveMindContext}`,
   }
 });
 
+const path = require("path");
+
+// Fallback: serve index.html for all non-API routes
+app.get("*", (req, res, next) => {
+  if (req.path.startsWith("/api/")) return next(); // skip API routes
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
+
 
 // --- Server Startup ---
 async function startServer() {
