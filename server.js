@@ -19,6 +19,14 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "ok", message: "Mini Brain service is running 🚀" });
 });
 
+// Version check endpoint (shows commit + app version)
+app.get("/api/version", (req, res) => {
+  res.json({
+    version: process.env.npm_package_version || "unknown",
+    commit: process.env.RENDER_GIT_COMMIT || "local-dev"
+  });
+});
+
 // --- Port Handling ---
 const PORT = process.env.PORT || 3000;
 
