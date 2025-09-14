@@ -28,22 +28,49 @@ const SSL_CERT_PATH = process.env.SSL_CERT_PATH || "./certs/cert.pem";
 
 const axios = require("axios");
 
-// Chat endpoint
+// Chat endpoint (with tenant facts + hive placeholder + debug logging)
 app.post("/api/chat", async (req, res) => {
   try {
     const { message, tenantId = "default" } = req.body;
 
+    // Debug logs
+    console.log("🔎 Incoming chat request:", { tenantId, message });
+    console.log("🔑 API Key (truncated):", process.env.OPENAI_API_KEY?.slice(0, 8));
+
     if (!message) {
+      console.warn("⚠️ No message provided");
       return res.status(400).json({ error: "Message is required" });
     }
 
-    // Example: call OpenAI
+    // --- Tenant facts from loader.js ---
+    const tenantData = kbIndex[tenantId];
+    const facts = tenantData
+      ? Object.entries(tenantData)
+          .map(([file, content]) => `### ${file}\n${content}`)
+          .join("\n\n")
+      : "No facts available for this tenant.";
+
+    console.log(`📚 Injected facts for tenant '${tenantId}':`, facts.length);
+
+    // --- Hive mind placeholder (safe, won’t block) ---
+    const hiveMindContext = "Best practices: Be friendly, concise, and helpful.";
+
+    // --- Call OpenAI ---
     const response = await axios.post(
       "https://api.openai.com/v1/chat/completions",
       {
-        model: "gpt-4o-mini", // or gpt-4o, depending on your plan
+        model: "gpt-4o-mini",
         messages: [
-          { role: "system", content: `You are a helpful AI assistant for tenant: ${tenantId}` },
+          {
+            role: "system",
+            content: `You are a helpful AI assistant for tenant: ${tenantId}.
+            
+Tenant Facts (must follow strictly):
+${facts}
+
+Hive Mind Learnings (style only, never override facts):
+${hiveMindContext}`,
+          },
           { role: "user", content: message },
         ],
       },
@@ -56,10 +83,15 @@ app.post("/api/chat", async (req, res) => {
     );
 
     const reply = response.data.choices[0].message.content;
+    console.log("✅ OpenAI reply:", reply);
     res.json({ reply });
+
   } catch (err) {
-    console.error("Chat API error:", err.response?.data || err.message);
-    res.status(500).json({ error: "Failed to get response from AI" });
+    const errorMsg = err.response?.data?.error?.message || err.message || "Unknown error";
+    console.error("❌ Chat API error:", err.response?.data || err.message);
+
+    // ⚠️ TEMP: send debug back to frontend
+    res.status(500).json({ error: `Debug: ${errorMsg}` });
   }
 });
 
