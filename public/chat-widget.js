@@ -1,85 +1,123 @@
 (() => {
-  const API_URL = "/api/chat";
+  // --- Config ---
+  const API_BASE_URL = "https://demo-qabot.onrender.com"; // update if your Render URL changes
+  const TENANT_ID = "default"; // later: set dynamically per business
 
-  // Create bubble
+  // --- Create Chat Bubble ---
   const bubble = document.createElement("div");
   bubble.id = "chat-bubble";
-  bubble.setAttribute("role", "button");
-  bubble.setAttribute("aria-label", "Open chat widget");
   bubble.innerHTML = "💬";
+  Object.assign(bubble.style, {
+    position: "fixed",
+    bottom: "20px",
+    right: "20px",
+    width: "60px",
+    height: "60px",
+    background: "#2563eb",
+    color: "#fff",
+    borderRadius: "50%",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "24px",
+    cursor: "pointer",
+    boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
+    zIndex: "9999",
+  });
   document.body.appendChild(bubble);
 
-  // Create chat window
-  const win = document.createElement("div");
-  win.id = "chat-window";
-  win.classList.add("hidden");
-  win.innerHTML = `
-    <div id="chat-header">
-      <span>Chat</span>
-      <button id="chat-close" aria-label="Close chat">&times;</button>
+  // --- Create Chat Window ---
+  const chatWindow = document.createElement("div");
+  chatWindow.id = "chat-window";
+  Object.assign(chatWindow.style, {
+    position: "fixed",
+    bottom: "90px",
+    right: "20px",
+    width: "320px",
+    height: "420px",
+    background: "#fff",
+    border: "1px solid #ddd",
+    borderRadius: "12px",
+    boxShadow: "0 4px 16px rgba(0,0,0,0.2)",
+    display: "none",
+    flexDirection: "column",
+    overflow: "hidden",
+    fontFamily: "system-ui, sans-serif",
+    zIndex: "9999",
+  });
+
+  chatWindow.innerHTML = `
+    <div style="background:#2563eb; color:#fff; padding:10px; font-weight:bold; display:flex; justify-content:space-between; align-items:center;">
+      <span>Chat Assistant</span>
+      <button id="chat-close" style="background:none;border:none;color:#fff;font-size:18px;cursor:pointer;">✕</button>
     </div>
-    <div id="chat-messages" aria-live="polite"></div>
-    <div id="chat-input-area">
-      <input id="chat-input" type="text" placeholder="Type a message..." autocomplete="off" />
-      <button id="chat-send" aria-label="Send message">➤</button>
+    <div id="chat-messages" style="flex:1; padding:10px; overflow-y:auto; font-size:14px; line-height:1.4;"></div>
+    <div style="display:flex; border-top:1px solid #ddd;">
+      <input id="chat-input" type="text" placeholder="Type a message..." 
+        style="flex:1; padding:10px; border:none; font-size:14px; outline:none;" />
+      <button id="chat-send" style="background:#2563eb;color:#fff;border:none;padding:0 16px;cursor:pointer;">Send</button>
     </div>
   `;
-  document.body.appendChild(win);
+  document.body.appendChild(chatWindow);
 
-  const closeBtn = win.querySelector("#chat-close");
-  const input = win.querySelector("#chat-input");
-  const sendBtn = win.querySelector("#chat-send");
-  const messages = win.querySelector("#chat-messages");
+  // --- Elements ---
+  const chatMessages = chatWindow.querySelector("#chat-messages");
+  const chatInput = chatWindow.querySelector("#chat-input");
+  const chatSend = chatWindow.querySelector("#chat-send");
+  const chatClose = chatWindow.querySelector("#chat-close");
 
-  function openChat() {
-    win.classList.remove("hidden");
-    win.classList.add("open");
-    input.focus();
-  }
-  function closeChat() {
-    win.classList.remove("open");
-    setTimeout(() => win.classList.add("hidden"), 200);
-  }
+  // --- Toggle Window ---
+  bubble.addEventListener("click", () => {
+    chatWindow.style.display = chatWindow.style.display === "none" ? "flex" : "none";
+    if (chatWindow.style.display === "flex") chatInput.focus();
+  });
+  chatClose.addEventListener("click", () => (chatWindow.style.display = "none"));
 
-  bubble.addEventListener("click", openChat);
-  closeBtn.addEventListener("click", closeChat);
-
-  function appendMessage(role, text) {
-    const div = document.createElement("div");
-    div.className = `message ${role}`;
-    div.textContent = text;
-    messages.appendChild(div);
-    messages.scrollTop = messages.scrollHeight;
+  // --- Helpers ---
+  function appendMessage(sender, text) {
+    const msg = document.createElement("div");
+    msg.style.marginBottom = "8px";
+    msg.innerHTML = `<strong>${sender}:</strong> ${text}`;
+    chatMessages.appendChild(msg);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
   }
 
   async function sendMessage() {
-    const text = input.value.trim();
+    const text = chatInput.value.trim();
     if (!text) return;
-    appendMessage("user", text);
-    input.value = "";
+
+    appendMessage("You", text);
+    chatInput.value = "";
+
+    // Show loading message
+    const loadingMsg = document.createElement("div");
+    loadingMsg.style.marginBottom = "8px";
+    loadingMsg.innerHTML = `<em>Assistant is typing...</em>`;
+    chatMessages.appendChild(loadingMsg);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
 
     try {
-      const res = await fetch(API_URL, {
+      const res = await fetch(`${API_BASE_URL}/api/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text }),
+        body: JSON.stringify({ message: text, tenantId: TENANT_ID }),
       });
-      if (!res.ok) throw new Error(`Server error ${res.status}`);
+
+      if (!res.ok) throw new Error(`Server error: ${res.status}`);
       const data = await res.json();
-      appendMessage("bot", data.reply || "⚠️ No response");
+
+      chatMessages.removeChild(loadingMsg);
+      appendMessage("Assistant", data.reply || "⚠️ No reply received.");
     } catch (err) {
       console.error("Chat error:", err);
-      appendMessage("bot", "⚠️ Something went wrong. Please try again.");
+      chatMessages.removeChild(loadingMsg);
+      appendMessage("Assistant", "⚠️ Something went wrong. Please try again.");
     }
   }
 
-  // Send on click
-  sendBtn.addEventListener("click", sendMessage);
-  // Send on Enter
-  input.addEventListener("keydown", e => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
+  // --- Send on button click or Enter ---
+  chatSend.addEventListener("click", sendMessage);
+  chatInput.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") sendMessage();
   });
 })();

@@ -7,17 +7,12 @@
   "coffee-shop": {
     "title": "CoffeeBot ☕",
     "color": "#b45309",
-    "logo": "logos/coffee.png"   // relative path inside /public
+    "bubbleIcon": "☕"
   },
   "gym": {
     "title": "FitBuddy 💪",
     "color": "#16a34a",
     "bubbleIcon": "💪"
-  },
-  "law-firm": {
-    "title": "LegalHelper ⚖️",
-    "color": "#1d4ed8",
-    "logo": "logos/law.svg"
   }
 }
 
