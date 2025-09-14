@@ -10,5 +10,7 @@ services:
         value: 18
       - key: OPENAI_API_KEY
         sync: false
+      - key: RENDER_GIT_COMMIT
+        value: ${RENDER_GIT_COMMIT}   # Auto-set by Render
     healthCheckPath: /api/health
 
