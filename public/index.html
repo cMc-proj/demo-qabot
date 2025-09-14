@@ -1,141 +1,99 @@
-/* Global Styles */
-body {
-  margin: 0;
-  font-family: 'Inter', sans-serif;
-  background: #ffffff;
-  color: #111827;
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Demo AI Assistant</title>
 
-/* Hero */
-.hero {
-  text-align: center;
-  padding: 2rem 1rem 1rem;
-}
-.logo {
-  font-size: 3rem;
-  font-weight: 700;
-  color: #1E3A8A;
-  margin: 0;
-}
-.tagline {
-  font-size: 1.2rem;
-  color: #374151;
-  margin: 0.5rem 0 0;
-}
+  <!-- ✅ Link stylesheet + JS -->
+  <link rel="stylesheet" href="./style.css" />
+  <script src="./app.js" defer></script>
+</head>
+<body>
+  <header class="container">
+    <nav class="topbar">
+      <div class="brand">Demo AI Assistant</div>
+      <div class="top-actions">
+        <a href="#" class="link">Docs</a>
+        <a href="#" class="link">Contact</a>
+      </div>
+    </nav>
+  </header>
 
-/* Chat Container */
-main {
-  flex: 1;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 1rem;
-}
-#chat-container {
-  width: 100%;
-  max-width: 500px;
-  height: 70%;
-  border: 2px solid #E5E7EB;
-  border-radius: 16px;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  background: #F9FAFB;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-}
-#chat-messages {
-  flex: 1;
-  padding: 1rem;
-  overflow-y: auto;
-}
-.message {
-  margin: 0.5rem 0;
-  padding: 0.75rem 1rem;
-  border-radius: 12px;
-  max-width: 80%;
-}
-.user {
-  background: #3B82F6;
-  color: white;
-  align-self: flex-end;
-}
-.bot {
-  background: #E5E7EB;
-  color: #111827;
-  align-self: flex-start;
-}
-#chat-input {
-  display: flex;
-  border-top: 1px solid #E5E7EB;
-}
-#chat-input input {
-  flex: 1;
-  padding: 0.75rem;
-  border: none;
-  outline: none;
-  font-size: 1rem;
-}
-#chat-input button {
-  padding: 0 1.5rem;
-  border: none;
-  background: linear-gradient(90deg, #06B6D4, #3B82F6);
-  color: white;
-  font-weight: 600;
-  cursor: pointer;
-  transition: opacity 0.2s;
-}
-#chat-input button:hover {
-  opacity: 0.9;
-}
+  <main class="container">
+    <!-- Hero + CTA -->
+    <section class="hero card">
+      <div class="hero-copy">
+        <h1>Get answers. Move faster.</h1>
+        <p class="muted">Ask a question and the assistant will guide you. Toggle verbose to see reasoning steps.</p>
+      </div>
 
-/* Demo Selector */
-footer.demo-selector {
-  display: flex;
-  justify-content: space-around;
-  padding: 1rem;
-  border-top: 1px solid #E5E7EB;
-  background: #ffffff;
-}
-.demo-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  width: 70px;
-  height: 70px;
-  border-radius: 50%;
-  border: 2px solid #3B82F6;
-  background: white;
-  font-size: 1.5rem;
-  cursor: pointer;
-  transition: transform 0.2s, background 0.2s;
-}
-.demo-btn span {
-  font-size: 0.7rem;
-  margin-top: 0.25rem;
-  color: #1E3A8A;
-}
-.demo-btn:hover {
-  background: #EFF6FF;
-  transform: scale(1.1);
-}
-/* Animations */
-.fade-in {
-  animation: fadeIn 0.4s ease;
-}
-.fade-out {
-  animation: fadeOut 0.3s ease forwards;
-}
+      <form id="ask-form" class="ask-form" novalidate>
+        <div class="row gap">
+          <label class="sr-only" for="query">Your question</label>
+          <input id="query" name="query" type="text" placeholder="Type a question to get started."
+                 autocomplete="off" aria-describedby="query-help" />
+          <button id="submit" class="btn" type="submit" disabled>Ask</button>
+        </div>
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(5px); }
-  to { opacity: 1; transform: translateY(0); }
-}
+        <div class="row controls">
+          <div class="control">
+            <input type="checkbox" id="verbose" name="verbose" />
+            <label for="verbose">Verbose</label>
+          </div>
 
-@keyframes fadeOut {
-  from { opacity: 1; }
-  to { opacity: 0; }
-}
+          <div class="control">
+            <label for="mode">Mode</label>
+            <select id="mode" name="mode" aria-label="Response mode">
+              <option value="general" selected>General</option>
+              <option value="retail">Retail</option>
+              <option value="health">Health</option>
+            </select>
+          </div>
+
+          <div class="control">
+            <label for="bot">Bot</label>
+            <select id="bot" name="bot" aria-label="Bot selector">
+              <option value="general" selected>general</option>
+              <option value="retail">retail</option>
+              <option value="health">health</option>
+            </select>
+          </div>
+        </div>
+
+        <p id="query-help" class="help">Submit is disabled until you enter text.</p>
+
+        <div id="alert" class="alert hidden" role="alert" aria-live="polite"></div>
+      </form>
+    </section>
+
+    <!-- Results Panel -->
+    <section id="results" class="results card" aria-live="polite" aria-busy="false">
+      <div class="results-header">
+        <h2>Results</h2>
+        <div id="meta" class="meta"></div>
+      </div>
+
+      <div id="empty" class="empty">
+        <p class="muted">Nothing here yet — ask a question above.</p>
+      </div>
+
+      <div id="loading" class="loading hidden">
+        <span class="spinner" aria-hidden="true"></span>
+        <span>Thinking…</span>
+      </div>
+
+      <article id="answer" class="answer hidden"></article>
+
+      <details id="verbose-panel" class="verbose-panel hidden">
+        <summary>Verbose steps</summary>
+        <ol id="steps"></ol>
+      </details>
+    </section>
+  </main>
+
+  <footer class="container footer">
+    <p class="muted">© <span id="year"></span> Demo. Built with love and 8px spacing.</p>
+  </footer>
+</body>
+</html>
