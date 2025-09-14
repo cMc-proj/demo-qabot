@@ -274,30 +274,18 @@ ${hiveMindContext}`
   }
 });
 
-// Fallback: serve index.html
-app.get("*", (req, res, next) => {
-  if (req.path.startsWith("/api/")) return next();
+// Explicit root route → always serve index.html
+app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-// JSON error handler
-app.use((err, req, res, next) => {
-  console.error("❌ Uncaught error:", err);
-  const status = err.status || 500;
-  res
-    .status(status)
-    .type("application/json")
-    .send({
-      error: status === 415 ? "UNSUPPORTED_MEDIA_TYPE" : "INTERNAL_ERROR",
-      message: err.message || "Internal error",
-    });
+// Catch-all for non-API routes
+app.get("*", (req, res, next) => {
+  if (req.path.startsWith("/api/")) return next(); // leave API routes alone
+  res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-// --- Startup ---
-const PORT = process.env.PORT || 5050;
-const SSL_KEY_PATH = process.env.SSL_KEY_PATH || "./certs/key.pem";
-const SSL_CERT_PATH = process.env.SSL_CERT_PATH || "./certs/cert.pem";
-
+// --- Server Startup ---
 async function startServer() {
   await warmAllTenants();
   console.log("📚 Knowledge stores warmed:", Object.keys(kbIndex));
