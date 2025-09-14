@@ -34,33 +34,40 @@ function createChatWindow(industry, label, emoji) {
   }
 
   async function sendMessage() {
-    const text = input.value.trim();
-    if (!text) return;
-    appendMessage("user", text);
-    input.value = "";
+  const text = input.value.trim();
+  if (!text) return;
+  appendMessage("user", text);
+  input.value = "";
 
-    try {
-      const res = await fetch("/api/ask", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          query: text,
-          mode: industry,   // 🔑 industry locked to this chat
-          verbose: false
-        })
-      });
+  try {
+    const res = await fetch("/api/ask", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        query: text,
+        mode: industry,   // or currentMode depending on your setup
+        verbose: false
+      })
+    });
 
-      const data = await res.json();
-      if (data.error) {
-        appendMessage("bot", `⚠️ ${data.error.message}`);
-      } else {
-        appendMessage("bot", data.answer || "No answer available.");
-      }
-    } catch (err) {
-      appendMessage("bot", "⚠️ Error connecting to server.");
-      console.error("Chat error:", err);
+    const data = await res.json();
+    console.log("🔎 API response:", data); // 👈 add this
+
+    if (data.error) {
+      appendMessage("bot", `⚠️ ${data.error.message}`);
+    } else if (data.answer) {
+      appendMessage("bot", data.answer);
+    } else if (data.reply) {
+      appendMessage("bot", data.reply);
+    } else {
+      appendMessage("bot", "⚠️ Unexpected response format.");
     }
+  } catch (err) {
+    appendMessage("bot", "⚠️ Error connecting to server.");
+    console.error("Chat error:", err);
   }
+}
+
 
   sendBtn.onclick = sendMessage;
   input.addEventListener("keypress", e => {
