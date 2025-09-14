@@ -1,4 +1,5 @@
 # Project Notes  
+Protect main (no force‑push); merge via PR only.
 
 ## Overview  
 - **Project name:**  
@@ -17,6 +18,40 @@
 - Owen is coding the demo locally, no commits pushed yet.
 - Jackson preparing documentation, test plan, and meeting agenda.
 - Sept 14: Created TEST_PLAN.md, updated agenda.
+
+## Status Update – Sept 14
+
+- Backend running on **http://localhost:5050**  
+- `.env` settings:  
+  - `PORT=5050`  
+  - `FRONTEND_ORIGIN=http://localhost:3000`  
+  - `RELAX_TLS=false`  
+- Confirmed CORS logs:  
+
+- Owen’s frontend will run on `http://localhost:3000` and can now make requests to the backend without CORS errors.
+- Backend contract: `POST /api/ask` with `{ query, mode, verbose }`
+- Modes supported: `general | retail | medical | ecommerce | restaurant`
+- Backend returns JSON with `{ answer, mode, confidence, uncertainty, follow_up, citations, error }`
+- Current backend tasks (Jackson):  
+- ✅ Endpoint implemented with validation, modes, and uncertainty/confidence.  
+- ⏳ Optional: refactor responders into `src/hive/*.js` for cleaner structure.  
+- ⏳ Add Jest/supertest for testing and Postman collection for dev support.  
+
+## Backend Setup (as of Sept 14)
+
+- The backend now lives in `/api` inside this repo.
+- To run it locally:
+  ```powershell
+  cd api
+  npm install   # only first time
+  npm start
+
+
+### Next Steps
+- Owen: implement frontend fetch call, input field, mode dropdown, and error/uncertainty handling.
+- Jackson: standby for testing and provide CORS/env support if Owen’s setup differs.
+- Both: run test queries once frontend is hooked up.
+
 
 
 
