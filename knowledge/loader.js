@@ -1,0 +1,61 @@
+// knowledge/loader.js
+const fs = require("fs");
+const path = require("path");
+
+const kbIndex = {}; // holds tenant knowledge stores
+
+/**
+ * Load a Markdown file and return its text.
+ */
+function loadMarkdown(filePath) {
+  try {
+    return fs.readFileSync(filePath, "utf8");
+  } catch (err) {
+    console.error(`⚠️ Could not load file: ${filePath}`, err.message);
+    return "";
+  }
+}
+
+/**
+ * Load knowledge for a single tenant.
+ */
+async function loadTenant(tenantId, tenantPath) {
+  const faqsPath = path.join(tenantPath, "faqs.md");
+  const hoursPath = path.join(tenantPath, "hours.md");
+
+  const tenantKnowledge = {
+    faqs: fs.existsSync(faqsPath) ? loadMarkdown(faqsPath) : "",
+    hours: fs.existsSync(hoursPath) ? loadMarkdown(hoursPath) : "",
+  };
+
+  kbIndex[tenantId] = tenantKnowledge;
+  console.log(`✅ Loaded knowledge for tenant: ${tenantId}`);
+}
+
+/**
+ * Warm all tenants by loading their knowledge into memory.
+ */
+async function warmAllTenants() {
+  const knowledgeRoot = path.join(__dirname);
+
+  // Each subfolder inside /knowledge is treated as a tenant
+  const tenants = fs
+    .readdirSync(knowledgeRoot, { withFileTypes: true })
+    .filter((dirent) => dirent.isDirectory())
+    .map((dirent) => dirent.name);
+
+  if (tenants.length === 0) {
+    console.warn("⚠️ No tenant directories found in /knowledge");
+  }
+
+  for (const tenantId of tenants) {
+    const tenantPath = path.join(knowledgeRoot, tenantId);
+    await loadTenant(tenantId, tenantPath);
+  }
+}
+
+module.exports = {
+  warmAllTenants,
+  kbIndex,
+};
+
