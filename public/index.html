@@ -4,7 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>CMC Industry Chat Demo</title>
+
+  <!-- ✅ Styles + Scripts -->
   <link rel="stylesheet" href="style.css" />
+  <script src="chat-widget.js" defer></script>
 </head>
 <body>
   <header class="page-header">
@@ -13,14 +16,36 @@
   </header>
 
   <main>
+    <!-- Industry Bubbles -->
     <section id="bubbles-container">
       <div class="chat-bubble" id="restaurant">🍽️ Restaurant</div>
       <div class="chat-bubble" id="retail">🛍️ Retail</div>
       <div class="chat-bubble" id="ecommerce">💻 E-commerce</div>
       <div class="chat-bubble" id="medical">🏥 Medical</div>
     </section>
+
+    <!-- Results Panel -->
+    <section id="results" class="results card" aria-live="polite" aria-busy="false">
+      <div class="results-header">
+        <h2>Results</h2>
+        <div id="meta" class="meta"></div>
+      </div>
+
+      <div id="empty" class="empty">
+        <p class="muted">Nothing here yet — select a bubble to start chatting.</p>
+      </div>
+
+      <div id="loading" class="loading hidden">
+        <span class="spinner" aria-hidden="true"></span>
+        <span>Thinking…</span>
+      </div>
+
+      <article id="answer" class="answer hidden"></article>
+    </section>
   </main>
 
-  <script src="chat-widget.js" defer></script>
+  <footer class="container footer">
+    <p class="muted">© <span id="year"></span> CMC. Built with love and 8px spacing.</p>
+  </footer>
 </body>
 </html>

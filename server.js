@@ -103,6 +103,18 @@ ${hiveMindContext}`,
   }
 });
 
+const path = require("path");
+
+// Explicit root route → always serve index.html
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
+
+// Catch-all for non-API routes
+app.get("*", (req, res, next) => {
+  if (req.path.startsWith("/api/")) return next(); // leave API routes alone
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
 
 // --- Server Startup ---
 async function startServer() {
@@ -110,7 +122,6 @@ async function startServer() {
   console.log("📚 Knowledge stores warmed:", Object.keys(kbIndex));
 
   if (fs.existsSync(SSL_KEY_PATH) && fs.existsSync(SSL_CERT_PATH)) {
-    // Local HTTPS
     const creds = {
       key: fs.readFileSync(SSL_KEY_PATH, "utf8"),
       cert: fs.readFileSync(SSL_CERT_PATH, "utf8"),
@@ -119,7 +130,6 @@ async function startServer() {
       console.log(`🔒 HTTPS server running at https://localhost:${PORT}`);
     });
   } else {
-    // Default HTTP (Render will use this)
     app.listen(PORT, () => {
       console.log(`🌐 Server running on port ${PORT}`);
     });
@@ -130,4 +140,3 @@ startServer().catch((err) => {
   console.error("❌ Failed to start server:", err);
   process.exit(1);
 });
-

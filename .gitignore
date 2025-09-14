@@ -1,8 +1,14 @@
+# Dependencies
 node_modules/
+
+# Environment
 .env
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+
+# System files
 .DS_Store
-.env
-.env
+
+# Build / logs
+log/
+dist/
+build/
+
