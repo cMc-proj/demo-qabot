@@ -10,7 +10,12 @@
     "lint": "eslint .",
     "test": "echo \"No tests yet\" && exit 0"
   },
-  "keywords": ["chatbot", "express", "openai", "widget"],
+  "keywords": [
+    "chatbot",
+    "express",
+    "openai",
+    "widget"
+  ],
   "author": "Your Name <you@example.com>",
   "license": "MIT",
   "repository": {
@@ -21,6 +26,7 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
+    "axios": "^1.12.1",
     "compression": "^1.8.1",
     "cors": "^2.8.5",
     "dotenv": "^17.2.2",
@@ -34,4 +40,3 @@
     "nodemon": "^3.1.0"
   }
 }
-
