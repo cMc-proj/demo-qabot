@@ -63,82 +63,60 @@
     verbosePanel.classList.add("hidden");
   }
 
-  // Submit handler
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    setAlert(null);
+// Submit handler
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  setAlert(null);
 
-    const query = input.value.trim();
-    if (!query) {
-      setAlert("Please enter a question.");
-      return;
+  const query = input.value.trim();
+  if (!query) {
+    setAlert("Please enter a question.");
+    return;
+  }
+
+  // UI states
+  empty.classList.add("hidden");
+  clearResults();
+  setLoading(true);
+  submit.disabled = true;
+
+  try {
+    const resp = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        message: query,
+        tenantId: "default" // or dynamic if you want to support multiple tenants
+      })
+    });
+
+    const data = await resp.json().catch(() => ({}));
+
+    if (!resp.ok || data.error) {
+      throw new Error(data.error || `Request failed (${resp.status})`);
     }
 
-    // UI states
+    // Render meta (not provided by /api/chat, so simplified)
+    metaEl.textContent = "Bot • live";
+
+    // Render answer
+    const answer = data.reply || "";
+    answerEl.textContent = answer;
+    answerEl.classList.toggle("hidden", !answer);
+
+    // Verbose steps (not returned by /api/chat, so we just hide)
+    verbosePanel.classList.add("hidden");
+    verbosePanel.open = false;
+
+  } catch (err) {
+    setAlert(err.message || "Something went wrong. Please try again.");
     empty.classList.add("hidden");
-    clearResults();
-    setLoading(true);
-    submit.disabled = true;
+  } finally {
+    setLoading(false);
+    syncSubmitState(); // re-enable if input still has text
+  }
+});
 
-    const options = { verbose: !!verboseToggle.checked };
-    // Default to always sending a mode; mirror to bot as contract expects `bot`
-    const mode = modeSelect.value || "general";
-    const bot = botSelect.value || mode;
-
-    try {
-      const resp = await fetch("/api/ask", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          // You can add custom headers here if backend wants, e.g. "X-Mode": mode
-        },
-        body: JSON.stringify({
-          query,
-          options,       // { verbose: boolean }
-          bot,           // contract field
-          mode           // extra hint, harmless if backend ignores
-        })
-      });
-
-      const data = await resp.json().catch(() => ({}));
-
-      if (!resp.ok) {
-        const msg = data && data.error ? data.error : `Request failed (${resp.status})`;
-        throw new Error(msg);
-      }
-      if (data.error) {
-        throw new Error(data.error);
-      }
-
-      // Render meta
-      const elapsed = typeof data?.meta?.elapsed_ms === "number" ? `${data.meta.elapsed_ms} ms` : "";
-      const metaBot = data?.meta?.bot || bot;
-      metaEl.textContent = [metaBot, elapsed].filter(Boolean).join(" • ");
-
-      // Render answer
-      const answer = data?.answer || "";
-      answerEl.textContent = answer;
-      answerEl.classList.toggle("hidden", !answer);
-
-      // Render verbose steps if present and requested
-      const steps = Array.isArray(data?.verbose?.steps) ? data.verbose.steps : [];
-      if (options.verbose && steps.length > 0) {
-        stepsEl.innerHTML = steps.map(s => `<li>${escapeHtml(String(s))}</li>`).join("");
-        verbosePanel.classList.remove("hidden");
-        // Keep details open by default when verbose is on
-        verbosePanel.open = true;
-      } else {
-        verbosePanel.classList.add("hidden");
-        verbosePanel.open = false;
-      }
-    } catch (err) {
-      setAlert(err.message || "Something went wrong. Please try again.");
-      empty.classList.add("hidden");
-    } finally {
-      setLoading(false);
-      syncSubmitState(); // re-enable if input still has text
-    }
-  });
 
   // Basic HTML escaper for list items
   function escapeHtml(str){
