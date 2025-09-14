@@ -1,116 +1,174 @@
+// server.js
 require("dotenv").config();
 const fs = require("fs");
+const path = require("path");
 const http = require("http");
 const https = require("https");
 const express = require("express");
 const cors = require("cors");
-
+const axios = require("axios");
 const { warmAllTenants, kbIndex } = require("./knowledge/loader");
 
 const app = express();
 
-// Middleware
-app.use(cors());
-app.use(express.json());
-app.use(express.static("public"));
-
-// Example API route (adjust to your needs)
-app.get("/api/health", (req, res) => {
-  res.json({ status: "ok", message: "Mini Brain service is running 🚀" });
-});
-
-// Version check endpoint (shows commit + app version)
-app.get("/api/version", (req, res) => {
-  res.json({
-    version: process.env.npm_package_version || "unknown",
-    commit: process.env.RENDER_GIT_COMMIT || "local-dev"
-  });
-});
-
-// --- Port Handling ---
+/* ---------------------------
+   Core settings / constants
+----------------------------*/
 const PORT = process.env.PORT || 3000;
-
-// SSL paths (local dev only)
 const SSL_KEY_PATH = process.env.SSL_KEY_PATH || "./certs/key.pem";
 const SSL_CERT_PATH = process.env.SSL_CERT_PATH || "./certs/cert.pem";
+const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
 
-const axios = require("axios");
+/* ---------------------------
+   CORS (allowlist via .env)
+----------------------------*/
+const allowedOrigins = (process.env.CORS_ALLOWED_ORIGINS || "")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
 
-// Chat endpoint (with tenant facts + hive placeholder + debug logging)
+app.use(
+  cors({
+    origin: (origin, cb) => {
+      // allow same-origin / curl / Postman (no origin header)
+      if (!origin) return cb(null, true);
+      if (allowedOrigins.includes(origin)) return cb(null, true);
+      return cb(new Error("CORS: origin not allowed"));
+    },
+    credentials: true,
+  })
+);
+
+/* ---------------------------
+   Base middleware & static
+----------------------------*/
+app.use(express.json({ limit: "1mb" }));
+app.use(express.static("public"));
+
+/* ---------------------------
+   Health / readiness / version
+----------------------------*/
+app.get("/healthz", (_req, res) => res.json({ ok: true }));
+app.get("/readyz", (_req, res) =>
+  res.json({ ready: Boolean(Object.keys(kbIndex || {}).length) })
+);
+app.get("/api/health", (_req, res) =>
+  res.json({ status: "ok", message: "Mini Brain service is running 🚀" })
+);
+app.get("/api/version", (_req, res) =>
+  res.json({
+    version: process.env.npm_package_version || "unknown",
+    commit: process.env.RENDER_GIT_COMMIT || "local-dev",
+  })
+);
+
+/* ---------------------------
+   Helpers
+----------------------------*/
+function extractUserMessage(body) {
+  // Accept either { message } OR { messages:[...roles...] }
+  if (typeof body?.message === "string") return body.message;
+
+  if (Array.isArray(body?.messages)) {
+    const lastUser = [...body.messages]
+      .reverse()
+      .find((m) => m && m.role === "user" && typeof m.content === "string");
+    return lastUser?.content || "";
+  }
+  return "";
+}
+
+function buildTenantFacts(tenantId) {
+  const tenantData = kbIndex[tenantId];
+  if (!tenantData) return "No facts available for this tenant.";
+  return Object.entries(tenantData)
+    .map(([file, content]) => `### ${file}\n${content}`)
+    .join("\n\n");
+}
+
+/* ---------------------------
+   Chat endpoint
+----------------------------*/
 app.post("/api/chat", async (req, res) => {
   try {
-    const { message, tenantId = "default" } = req.body;
+    const tenantId = req.body?.tenantId || req.body?.businessId || "default";
+    const message = extractUserMessage(req.body);
 
-    // Debug logs
-    console.log("🔎 Incoming chat request:", { tenantId, message });
-    console.log("🔑 API Key (truncated):", process.env.OPENAI_API_KEY?.slice(0, 8));
-
-    if (!message) {
-      console.warn("⚠️ No message provided");
-      return res.status(400).json({ error: "Message is required" });
+    if (!message || !message.trim()) {
+      return res.status(400).json({
+        error: "Body must include a user message.",
+        hint:
+          "Send { message: '...' } or { messages: [{role:'user', content:'...'}] }",
+      });
     }
 
-    // --- Tenant facts from loader.js ---
-    const tenantData = kbIndex[tenantId];
-    const facts = tenantData
-      ? Object.entries(tenantData)
-          .map(([file, content]) => `### ${file}\n${content}`)
-          .join("\n\n")
-      : "No facts available for this tenant.";
+    const facts = buildTenantFacts(tenantId);
+    const hiveMindContext =
+      "Best practices: Be friendly, concise, and helpful.";
 
-    console.log(`📚 Injected facts for tenant '${tenantId}':`, facts.length);
+    const payload = {
+      model: OPENAI_MODEL,
+      messages: [
+        {
+          role: "system",
+          content: `You are a helpful AI assistant for tenant: ${tenantId}.
 
-    // --- Hive mind placeholder (safe, won’t block) ---
-    const hiveMindContext = "Best practices: Be friendly, concise, and helpful.";
-
-    // --- Call OpenAI ---
-    const response = await axios.post(
-      "https://api.openai.com/v1/chat/completions",
-      {
-        model: "gpt-4o-mini",
-        messages: [
-          {
-            role: "system",
-            content: `You are a helpful AI assistant for tenant: ${tenantId}.
-            
 Tenant Facts (must follow strictly):
 ${facts}
 
 Hive Mind Learnings (style only, never override facts):
 ${hiveMindContext}`,
-          },
-          { role: "user", content: message },
-        ],
-      },
+        },
+        { role: "user", content: message },
+      ],
+    };
+
+    const response = await axios.post(
+      "https://api.openai.com/v1/chat/completions",
+      payload,
       {
         headers: {
-          "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
           "Content-Type": "application/json",
         },
+        timeout: 60_000,
       }
     );
 
-    const reply = response.data.choices[0].message.content;
-    console.log("✅ OpenAI reply:", reply);
-    res.json({ reply });
-
+    const reply =
+      response?.data?.choices?.[0]?.message?.content?.trim() ||
+      "Sorry — I’m not sure. Could you rephrase?";
+    res.json({ reply, text: reply }); // include text alias for widgets
   } catch (err) {
-    const errorMsg = err.response?.data?.error?.message || err.message || "Unknown error";
-    console.error("❌ Chat API error:", err.response?.data || err.message);
-
-    // ⚠️ TEMP: send debug back to frontend
-    res.status(500).json({ error: `Debug: ${errorMsg}` });
+    const msg =
+      err?.response?.data?.error?.message ||
+      err?.message ||
+      "Unknown error from OpenAI";
+    console.error("❌ /api/chat error:", msg);
+    res.status(500).json({ error: msg });
   }
 });
 
+/* ---------------------------
+   Error handler (CORS → JSON)
+----------------------------*/
+app.use((err, _req, res, _next) => {
+  if (err?.message?.startsWith("CORS:")) {
+    return res.status(403).json({ error: err.message });
+  }
+  console.error("🔥 Unhandled error:", err);
+  res.status(500).json({ error: "Server error" });
+});
 
-// --- Server Startup ---
+/* ---------------------------
+   Startup
+----------------------------*/
 async function startServer() {
   await warmAllTenants();
   console.log("📚 Knowledge stores warmed:", Object.keys(kbIndex));
 
+  // Prefer HTTPS locally if certs exist; Render/other PaaS will use HTTP and add HTTPS at edge
   if (fs.existsSync(SSL_KEY_PATH) && fs.existsSync(SSL_CERT_PATH)) {
-    // Local HTTPS
     const creds = {
       key: fs.readFileSync(SSL_KEY_PATH, "utf8"),
       cert: fs.readFileSync(SSL_CERT_PATH, "utf8"),
@@ -119,15 +177,13 @@ async function startServer() {
       console.log(`🔒 HTTPS server running at https://localhost:${PORT}`);
     });
   } else {
-    // Default HTTP (Render will use this)
     app.listen(PORT, () => {
-      console.log(`🌐 Server running on port ${PORT}`);
+      console.log(`🌐 HTTP server running at http://localhost:${PORT}`);
     });
   }
 }
 
-startServer().catch((err) => {
-  console.error("❌ Failed to start server:", err);
+startServer().catch((e) => {
+  console.error("❌ Failed to start server:", e);
   process.exit(1);
 });
-
