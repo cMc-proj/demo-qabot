@@ -1,70 +1,27 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Demo AI Assistant</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CMC Industry Chat Demo</title>
 
-  <!-- ✅ Link stylesheet + JS -->
-  <link rel="stylesheet" href="./style.css" />
-  <script src="./app.js" defer></script>
+  <!-- ✅ Styles + Scripts -->
+  <link rel="stylesheet" href="style.css" />
+  <script src="chat-widget.js" defer></script>
 </head>
 <body>
-  <header class="container">
-    <nav class="topbar">
-      <div class="brand">Demo AI Assistant</div>
-      <div class="top-actions">
-        <a href="#" class="link">Docs</a>
-        <a href="#" class="link">Contact</a>
-      </div>
-    </nav>
+  <header class="page-header">
+    <h1>CMC Chat Widget Demo</h1>
+    <p>Explore how the AI chat bubbles work across 4 industries.</p>
   </header>
 
-  <main class="container">
-    <!-- Hero + CTA -->
-    <section class="hero card">
-      <div class="hero-copy">
-        <h1>Get answers. Move faster.</h1>
-        <p class="muted">Ask a question and the assistant will guide you. Toggle verbose to see reasoning steps.</p>
-      </div>
-
-      <form id="ask-form" class="ask-form" novalidate>
-        <div class="row gap">
-          <label class="sr-only" for="query">Your question</label>
-          <input id="query" name="query" type="text" placeholder="Type a question to get started."
-                 autocomplete="off" aria-describedby="query-help" />
-          <button id="submit" class="btn" type="submit" disabled>Ask</button>
-        </div>
-
-        <div class="row controls">
-          <div class="control">
-            <input type="checkbox" id="verbose" name="verbose" />
-            <label for="verbose">Verbose</label>
-          </div>
-
-          <div class="control">
-            <label for="mode">Mode</label>
-            <select id="mode" name="mode" aria-label="Response mode">
-              <option value="general" selected>General</option>
-              <option value="retail">Retail</option>
-              <option value="health">Health</option>
-            </select>
-          </div>
-
-          <div class="control">
-            <label for="bot">Bot</label>
-            <select id="bot" name="bot" aria-label="Bot selector">
-              <option value="general" selected>general</option>
-              <option value="retail">retail</option>
-              <option value="health">health</option>
-            </select>
-          </div>
-        </div>
-
-        <p id="query-help" class="help">Submit is disabled until you enter text.</p>
-
-        <div id="alert" class="alert hidden" role="alert" aria-live="polite"></div>
-      </form>
+  <main>
+    <!-- Industry Bubbles -->
+    <section id="bubbles-container">
+      <div class="chat-bubble" id="restaurant">🍽️ Restaurant</div>
+      <div class="chat-bubble" id="retail">🛍️ Retail</div>
+      <div class="chat-bubble" id="ecommerce">💻 E-commerce</div>
+      <div class="chat-bubble" id="medical">🏥 Medical</div>
     </section>
 
     <!-- Results Panel -->
@@ -75,7 +32,7 @@
       </div>
 
       <div id="empty" class="empty">
-        <p class="muted">Nothing here yet — ask a question above.</p>
+        <p class="muted">Nothing here yet — select a bubble to start chatting.</p>
       </div>
 
       <div id="loading" class="loading hidden">
@@ -84,16 +41,11 @@
       </div>
 
       <article id="answer" class="answer hidden"></article>
-
-      <details id="verbose-panel" class="verbose-panel hidden">
-        <summary>Verbose steps</summary>
-        <ol id="steps"></ol>
-      </details>
     </section>
   </main>
 
   <footer class="container footer">
-    <p class="muted">© <span id="year"></span> Demo. Built with love and 8px spacing.</p>
+    <p class="muted">© <span id="year"></span> CMC. Built with love and 8px spacing.</p>
   </footer>
 </body>
 </html>
