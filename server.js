@@ -39,7 +39,7 @@ const axios = require("axios");
 // Shared handler for chat/ask endpoints
 async function handleAsk(req, res) {
   try {
-  const { message, tenantId = "default", mode = "default" } = req.body;
+    const { message, tenantId = "default", mode = "default" } = req.body;
 
     // Debug logs
     console.log("🔎 Incoming chat request:", { tenantId, mode, message });
@@ -60,7 +60,7 @@ async function handleAsk(req, res) {
 
     console.log(`📚 Injected facts for tenant '${tenantId}':`, facts.length);
 
-    // --- Hive mind placeholder (safe, won’t block) ---
+    // --- Hive mind placeholder (style guidance only) ---
     const hiveMindContext = "Best practices: Be friendly, concise, and helpful.";
 
     // --- Call OpenAI ---
@@ -78,31 +78,43 @@ Tenant Facts (must follow strictly):
 ${facts}
 
 Hive Mind Learnings (style only, never override facts):
-${hiveMindContext}`,
+${hiveMindContext}
+
+STYLE RULES (must always follow):
+- Keep answers short and conversational.
+- Maximum 2 sentences.
+- Never use lists, bullet points, or formatting.
+- If unsure, say so briefly.`
           },
-          { role: "user", content: message },
+          { role: "user", content: message }
         ],
+        max_tokens: 80,
+        temperature: 0.6
       },
       {
         headers: {
           "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
-          "Content-Type": "application/json",
-        },
+          "Content-Type": "application/json"
+        }
       }
     );
 
-    const reply = response.data.choices[0].message.content;
-    console.log("✅ OpenAI reply:", reply);
+    // --- Extract + enforce final safety ---
+    let reply = response.data.choices[0].message.content.trim();
+    // Hard trim to 2 sentences max
+    reply = reply.split(/(?<=\.)\s+/).slice(0, 2).join(" ");
+
+    console.log("✅ Final reply sent to client:", reply);
     res.json({ reply });
 
   } catch (err) {
     const errorMsg = err.response?.data?.error?.message || err.message || "Unknown error";
     console.error("❌ Chat API error:", err.response?.data || err.message);
 
-    // ⚠️ TEMP: send debug back to frontend
     res.status(500).json({ error: `Debug: ${errorMsg}` });
   }
 }
+
 
 // Chat endpoints
 app.post("/api/chat", handleAsk);
