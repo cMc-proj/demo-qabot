@@ -1,7 +1,6 @@
 (() => {
   const API_BASE_URL = "/api/chat";
 
-  // Industries & their labels
   const INDUSTRIES = {
     restaurant: "Restaurant Assistant",
     retail: "Retail Assistant",
@@ -9,27 +8,29 @@
     medical: "Medical Assistant",
   };
 
-  // Store chat windows by industry
   const chatWindows = {};
+  let activeIndustry = null;
 
   function createChatWindow(industry) {
     if (chatWindows[industry]) return chatWindows[industry];
 
     const wrapper = document.createElement("div");
     wrapper.className = "chat-window";
-    wrapper.style.position = "fixed";
-    wrapper.style.bottom = "90px";
-    wrapper.style.right = "20px";
-    wrapper.style.width = "320px";
-    wrapper.style.height = "420px";
-    wrapper.style.background = "#111";
-    wrapper.style.color = "#fff";
-    wrapper.style.borderRadius = "12px";
-    wrapper.style.display = "flex";
-    wrapper.style.flexDirection = "column";
-    wrapper.style.overflow = "hidden";
-    wrapper.style.zIndex = "9999";
-    wrapper.style.boxShadow = "0 6px 16px rgba(0,0,0,0.3)";
+    Object.assign(wrapper.style, {
+      position: "fixed",
+      bottom: "90px",
+      right: "20px",
+      width: "320px",
+      height: "420px",
+      background: "#111",
+      color: "#fff",
+      borderRadius: "12px",
+      display: "none",
+      flexDirection: "column",
+      overflow: "hidden",
+      zIndex: "9999",
+      boxShadow: "0 6px 16px rgba(0,0,0,0.3)",
+    });
 
     wrapper.innerHTML = `
       <div style="background:#000; padding:10px; display:flex; justify-content:space-between; align-items:center;">
@@ -46,7 +47,6 @@
 
     document.body.appendChild(wrapper);
 
-    // Elements
     const closeBtn = wrapper.querySelector(".chat-close");
     const sendBtn = wrapper.querySelector(".chat-send");
     const input = wrapper.querySelector(".chat-input");
@@ -99,22 +99,45 @@
     input.addEventListener("keypress", e => {
       if (e.key === "Enter") sendMessage();
     });
-    closeBtn.onclick = () => (wrapper.style.display = "none");
+    closeBtn.onclick = () => {
+      wrapper.style.display = "none";
+      if (activeIndustry === industry) activeIndustry = null;
+    };
 
     chatWindows[industry] = wrapper;
     return wrapper;
   }
 
-  // Attach listeners to industry bubbles
+  function toggleChat(industry) {
+    // If clicking the same industry again, toggle hide/show
+    if (activeIndustry === industry) {
+      const win = chatWindows[industry];
+      if (win && win.style.display === "flex") {
+        win.style.display = "none";
+        activeIndustry = null;
+      } else {
+        win.style.display = "flex";
+        activeIndustry = industry;
+      }
+      return;
+    }
+
+    // Hide the current one
+    if (activeIndustry && chatWindows[activeIndustry]) {
+      chatWindows[activeIndustry].style.display = "none";
+    }
+
+    // Show or create new one
+    const win = createChatWindow(industry);
+    win.style.display = "flex";
+    activeIndustry = industry;
+  }
+
   window.addEventListener("DOMContentLoaded", () => {
     Object.keys(INDUSTRIES).forEach(industry => {
       const bubble = document.getElementById(industry);
       if (!bubble) return;
-
-      bubble.addEventListener("click", () => {
-        const win = createChatWindow(industry);
-        win.style.display = "flex";
-      });
+      bubble.addEventListener("click", () => toggleChat(industry));
     });
   });
 })();
