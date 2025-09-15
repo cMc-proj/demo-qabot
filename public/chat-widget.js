@@ -141,3 +141,24 @@
     });
   });
 })();
+// --- Bubble → Chat Transition ---
+const placeholderBubble = document.getElementById("demo-placeholder-bubble");
+const chatWindow = document.querySelector(".industry-chat");
+
+if (placeholderBubble && chatWindow) {
+  // Expand bubble into chat
+  placeholderBubble.addEventListener("click", () => {
+    placeholderBubble.classList.add("open");
+    setTimeout(() => {
+      chatWindow.classList.add("show");
+    }, 250); // matches CSS transition timing
+  });
+
+  // Close chat → shrink bubble
+  document.querySelectorAll(".close-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      chatWindow.classList.remove("show");
+      placeholderBubble.classList.remove("open");
+    });
+  });
+}
