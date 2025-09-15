@@ -37,6 +37,9 @@ window.addEventListener("DOMContentLoaded", () => {
     appendMessage("You", text);
     userInput.value = "";
 
+    // 👇 Keep cursor in box after sending
+    userInput.focus();
+
     const loading = document.createElement("div");
     loading.classList.add("cmc-bubble", "cmc-bot");
     loading.textContent = `${INDUSTRIES[activeIndustry]} is typing…`;
@@ -52,7 +55,10 @@ window.addEventListener("DOMContentLoaded", () => {
       messagesContainer.removeChild(loading);
 
       if (data.error) appendMessage("⚠️ Error", data.error);
-      else appendMessage(INDUSTRIES[activeIndustry], data.reply || data.answer || "⚠️ Unexpected response format.");
+      else appendMessage(
+        INDUSTRIES[activeIndustry],
+        data.reply || data.answer || "⚠️ Unexpected response format."
+      );
     } catch (err) {
       messagesContainer.removeChild(loading);
       appendMessage("⚠️ Error", "Could not reach server.");
@@ -76,6 +82,7 @@ window.addEventListener("DOMContentLoaded", () => {
       placeholderBubble.classList.add("open");
       setTimeout(() => {
         chatWindow.classList.add("show");
+        userInput.focus(); // 👈 auto-focus when opened
       }, 250);
     });
   });
@@ -86,6 +93,7 @@ window.addEventListener("DOMContentLoaded", () => {
       placeholderBubble.classList.add("open");
       setTimeout(() => {
         chatWindow.classList.add("show");
+        userInput.focus(); // 👈 auto-focus when opened
       }, 250);
     });
 
