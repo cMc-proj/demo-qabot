@@ -17,29 +17,51 @@ window.addEventListener("DOMContentLoaded", () => {
   const userInput = document.getElementById("user-input");
   const sendBtn = document.getElementById("send-btn");
 
-  // Track active tenant
   let activeIndustry = null;
 
-  // --- Messaging ---
-  function appendMessage(sender, text) {
-    const div = document.createElement("div");
-    div.classList.add("cmc-bubble");
-    if (sender === "You") div.classList.add("cmc-user");
-    else div.classList.add("cmc-bot");
-    div.textContent = `${sender}: ${text}`;
-    messagesContainer.appendChild(div);
+  // --- Store chat history per industry ---
+  const chatHistories = {
+    restaurant: [],
+    retail: [],
+    ecommerce: [],
+    medical: [],
+  };
+
+  // Render stored history for a given industry
+  function renderHistory(industry) {
+    messagesContainer.innerHTML = "";
+    chatHistories[industry].forEach(({ sender, text, type }) => {
+      const div = document.createElement("div");
+      div.classList.add("cmc-bubble", type);
+      div.textContent = text;
+      messagesContainer.appendChild(div);
+    });
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
   }
 
+  // Append message to current chat + history
+  function appendMessage(text, type) {
+    if (!activeIndustry) return;
+    const div = document.createElement("div");
+    div.classList.add("cmc-bubble", type);
+    div.textContent = text;
+    messagesContainer.appendChild(div);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+    // Save to history
+    chatHistories[activeIndustry].push({ text, type });
+  }
+
+  // --- Send message ---
   async function sendMessage() {
     const text = userInput.value.trim();
     if (!text || !activeIndustry) return;
-    appendMessage("You", text);
-    userInput.value = "";
 
-    // 👇 Keep cursor in box after sending
+    appendMessage(text, "cmc-user");
+    userInput.value = "";
     userInput.focus();
 
+    // Temporary loading bubble
     const loading = document.createElement("div");
     loading.classList.add("cmc-bubble", "cmc-bot");
     loading.textContent = `${INDUSTRIES[activeIndustry]} is typing…`;
@@ -54,55 +76,66 @@ window.addEventListener("DOMContentLoaded", () => {
       const data = await res.json();
       messagesContainer.removeChild(loading);
 
-      if (data.error) appendMessage("⚠️ Error", data.error);
-      else appendMessage(
-        INDUSTRIES[activeIndustry],
-        data.reply || data.answer || "⚠️ Unexpected response format."
-      );
+      if (data.error) {
+        appendMessage(`⚠️ ${data.error}`, "cmc-error");
+      } else {
+        appendMessage(
+          data.reply || data.answer || data.message || "⚠️ Unexpected response",
+          "cmc-bot"
+        );
+      }
     } catch (err) {
       messagesContainer.removeChild(loading);
-      appendMessage("⚠️ Error", "Could not reach server.");
+      appendMessage("⚠️ Could not reach server.", "cmc-error");
       console.error("Chat error:", err);
     }
   }
 
   sendBtn.addEventListener("click", sendMessage);
-  userInput.addEventListener("keypress", e => {
+  userInput.addEventListener("keypress", (e) => {
     if (e.key === "Enter") sendMessage();
   });
 
   // --- Industry Bubble Clicks ---
-  Object.keys(INDUSTRIES).forEach(industry => {
+  Object.keys(INDUSTRIES).forEach((industry) => {
     const bubble = document.getElementById(industry);
     if (!bubble) return;
     bubble.addEventListener("click", () => {
       activeIndustry = industry;
       chatTitle.textContent = INDUSTRIES[industry];
-
-      placeholderBubble.classList.add("open");
-      setTimeout(() => {
-        chatWindow.classList.add("show");
-        userInput.focus(); // 👈 auto-focus when opened
-      }, 250);
+      openChat();
+      renderHistory(industry); // Load that industry’s chat
     });
   });
 
-  // --- Placeholder Bubble Toggle ---
-  if (placeholderBubble && chatWindow) {
+  // --- Placeholder Bubble ---
+  if (placeholderBubble) {
     placeholderBubble.addEventListener("click", () => {
-      placeholderBubble.classList.add("open");
-      setTimeout(() => {
-        chatWindow.classList.add("show");
-        userInput.focus(); // 👈 auto-focus when opened
-      }, 250);
+      if (!activeIndustry) {
+        // Default to Restaurant if none selected
+        activeIndustry = "restaurant";
+        chatTitle.textContent = INDUSTRIES[activeIndustry];
+      }
+      openChat();
+      renderHistory(activeIndustry);
     });
+  }
 
-    document.querySelectorAll(".close-btn").forEach(btn => {
-      btn.addEventListener("click", () => {
-        chatWindow.classList.remove("show");
-        placeholderBubble.classList.remove("open");
-        activeIndustry = null;
-      });
+  // --- Close Button ---
+  document.querySelectorAll(".close-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      chatWindow.classList.remove("show");
+      placeholderBubble.classList.remove("open");
+      userInput.blur();
     });
+  });
+
+  // --- Helpers ---
+  function openChat() {
+    placeholderBubble.classList.add("open");
+    setTimeout(() => {
+      chatWindow.classList.add("show");
+      userInput.focus();
+    }, 250);
   }
 });
