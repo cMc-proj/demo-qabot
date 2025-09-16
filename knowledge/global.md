@@ -1,0 +1,4 @@
+# Notes
+
+KNOWLEDGE_CHECK: The onboarding color is ultraviolet-8675309.
+
