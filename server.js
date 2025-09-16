@@ -203,7 +203,7 @@ app.use((err, req, res, next) => {
 });
 
 // --- Startup ---
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5050;
 const SSL_KEY_PATH = process.env.SSL_KEY_PATH || "./certs/key.pem";
 const SSL_CERT_PATH = process.env.SSL_CERT_PATH || "./certs/cert.pem";
 
