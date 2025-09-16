@@ -4,15 +4,24 @@
     "color": "#2563eb",
     "bubbleIcon": "💬"
   },
-  "coffee-shop": {
-    "title": "CoffeeBot ☕",
-    "color": "#b45309",
-    "bubbleIcon": "☕"
+  "restaurant": {
+    "title": "Restaurant Assistant 🍽️",
+    "color": "#ef4444",
+    "bubbleIcon": "🍽️"
   },
-  "gym": {
-    "title": "FitBuddy 💪",
-    "color": "#16a34a",
-    "bubbleIcon": "💪"
+  "retail": {
+    "title": "Retail Assistant 🛍️",
+    "color": "#f59e0b",
+    "bubbleIcon": "🛍️"
+  },
+  "ecommerce": {
+    "title": "E-commerce Assistant 💻",
+    "color": "#10b981",
+    "bubbleIcon": "💻"
+  },
+  "medical": {
+    "title": "Medical Assistant 🏥",
+    "color": "#3b82f6",
+    "bubbleIcon": "🏥"
   }
 }
-
