@@ -158,6 +158,19 @@ function readPersonaForTenant(tenant) {
   return "";
 }
 
+// --- Skills loader (reads skills.json if present) ---
+function readSkillsForTenant(tenant) {
+  const s = path.join(__dirname, "knowledge", tenant, "skills.json");
+  if (fs.existsSync(s)) {
+    try {
+      return JSON.parse(fs.readFileSync(s, "utf8"));
+    } catch (e) {
+      console.error("Failed to read skills for", tenant, e);
+    }
+  }
+  return { skills: [] };
+}
+
 
     const facts = tenantData
       ? Object.entries(tenantData)
@@ -178,6 +191,28 @@ if (personaText) {
   console.log(`🎭 Persona loaded for '${effectiveTenant}' (${personaText.length} chars)`);
 }
 
+// --- Skills instructions ---
+const skillsData = readSkillsForTenant(effectiveTenant);
+if (skillsData.skills.length > 0) {
+  console.log(`🛠️ Skills loaded for '${effectiveTenant}' (${skillsData.skills.length} skills)`);
+}
+
+let skillsSummary = "";
+if (skillsData.skills && skillsData.skills.length > 0) {
+  skillsSummary =
+    "This tenant has structured skills:\n" +
+    skillsData.skills
+      .map(
+        (skill) =>
+          `- ${skill.intent} → triggers: ${skill.trigger.join(
+            ", "
+          )} → respond using ${skill.response_file}`
+      )
+      .join("\n") +
+    "\n\n";
+}
+
+
     // Call OpenAI
     const response = await axios.post(
       "https://api.openai.com/v1/chat/completions",
@@ -189,6 +224,8 @@ if (personaText) {
     content: `You are a helpful AI assistant for tenant: ${effectiveTenant}.
 
 ${personaText ? `Persona:\n${personaText}\n\n` : ""}
+
+${skillsSummary}
 
 Tenant Facts (authoritative when relevant):
 ${facts}
