@@ -1,0 +1,14 @@
+{
+  "skills": [
+    {
+      "intent": "return_policy",
+      "trigger": ["return", "refund", "exchange"],
+      "response_file": "faqs.txt"
+    },
+    {
+      "intent": "shipping",
+      "trigger": ["shipping", "delivery", "tracking"],
+      "response_file": "shipping.md"
+    }
+  ]
+}

@@ -9,6 +9,25 @@ const path = require("path");
 
 const { warmAllTenants, kbIndex } = require("./knowledge/loader");
 
+function loadTenantConfig(tenantId) {
+  const basePath = path.join(__dirname, "knowledge", tenantId);
+
+  // Persona
+  const personaPath = path.join(basePath, "persona.txt");
+  const persona = fs.existsSync(personaPath)
+    ? fs.readFileSync(personaPath, "utf8")
+    : null;
+
+  // Skills
+  const skillsPath = path.join(basePath, "skills.json");
+  const skills = fs.existsSync(skillsPath)
+    ? JSON.parse(fs.readFileSync(skillsPath, "utf8"))
+    : { skills: [] };
+
+  return { tenantId, persona, skills };
+}
+
+
 const app = express();
 
 // Middleware
@@ -51,6 +70,19 @@ app.get("/api/config", (req, res) => {
   };
   res.type("application/json").status(200).send(cfg);
 });
+
+// Skills
+app.get("/api/skills/:tenantId", (req, res) => {
+  const tenantId = req.params.tenantId;
+  try {
+    const config = loadTenantConfig(tenantId);
+    res.json(config.skills);
+  } catch (err) {
+    console.error("Error loading skills:", err);
+    res.status(500).json({ error: "Failed to load skills" });
+  }
+});
+
 
 // Version check
 app.get("/api/version", (req, res) => {
@@ -113,6 +145,20 @@ if (!tenantData || Object.keys(tenantData).length === 0) {
     readKnowledgeForTenant(DEFAULT_TENANT);
 }
 
+// --- Persona loader (reads persona.txt if present) ---
+function readPersonaForTenant(tenant) {
+  const p = path.join(__dirname, "knowledge", tenant, "persona.txt");
+  if (fs.existsSync(p)) {
+    try {
+      return fs.readFileSync(p, "utf8");
+    } catch (e) {
+      console.error("Failed to read persona for", tenant, e);
+    }
+  }
+  return "";
+}
+
+
     const facts = tenantData
       ? Object.entries(tenantData)
           .map(([file, content]) => `### ${file}\n${content}`)
@@ -126,24 +172,32 @@ if (!tenantData || Object.keys(tenantData).length === 0) {
     const hiveMindContext =
       "Best practices: Be friendly, concise, and helpful.";
 
+// --- Persona instructions ---
+const personaText = readPersonaForTenant(effectiveTenant);
+if (personaText) {
+  console.log(`🎭 Persona loaded for '${effectiveTenant}' (${personaText.length} chars)`);
+}
+
     // Call OpenAI
     const response = await axios.post(
       "https://api.openai.com/v1/chat/completions",
       {
         model: OPENAI_MODEL,
         messages: [
-          {
-            role: "system",
-            content: `You are a helpful AI assistant for tenant: ${effectiveTenant}.
-            
+  {
+    role: "system",
+    content: `You are a helpful AI assistant for tenant: ${effectiveTenant}.
+
+${personaText ? `Persona:\n${personaText}\n\n` : ""}
+
 Tenant Facts (authoritative when relevant):
 ${facts}
 
 Hive Mind Learnings (style only; do not override facts):
-${hiveMindContext}`,
-          },
-          { role: "user", content: message.trim() },
-        ],
+${hiveMindContext}`
+  },
+  { role: "user", content: message.trim() }
+],
       },
       {
         headers: {
