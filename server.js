@@ -274,20 +274,6 @@ ${hiveMindContext}`
   }
 });
 
-<<<<<<< HEAD
-const path = require("path");
-
-// Explicit root route → always serve index.html
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
-});
-
-// Catch-all for non-API routes
-app.get("*", (req, res, next) => {
-  if (req.path.startsWith("/api/")) return next(); // leave API routes alone
-  res.sendFile(path.join(__dirname, "public", "index.html"));
-});
-=======
 // Fallback: serve index.html
 app.get("*", (req, res, next) => {
   if (req.path.startsWith("/api/")) return next();
@@ -311,7 +297,6 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5050;
 const SSL_KEY_PATH = process.env.SSL_KEY_PATH || "./certs/key.pem";
 const SSL_CERT_PATH = process.env.SSL_CERT_PATH || "./certs/cert.pem";
->>>>>>> f244b9978af134b622248c8a7677cafc633df009
 
 async function startServer() {
   await warmAllTenants();
