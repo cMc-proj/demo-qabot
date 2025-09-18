@@ -26,7 +26,7 @@
     "type": "git",
     "url": "https://github.com/yourorg/demo-qabot.git"
   },
-  },
+  
   "dependencies": {
     "axios": "^1.12.1",
     "compression": "^1.8.1",

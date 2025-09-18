@@ -9,6 +9,7 @@ const path = require("path");
 
 const { warmAllTenants, kbIndex } = require("./knowledge/loader");
 
+// --- Tenant config loaders ---
 function loadTenantConfig(tenantId) {
   const basePath = path.join(__dirname, "knowledge", tenantId);
 
@@ -27,77 +28,6 @@ function loadTenantConfig(tenantId) {
   return { tenantId, persona, skills };
 }
 
-
-const app = express();
-
-// Middleware
-app.use(cors());
-app.use(express.json());
-app.use(express.static("public"));
-
-// Enforce JSON for API writes
-app.use((req, res, next) => {
-  if (req.path.startsWith("/api") && ["POST", "PUT", "PATCH"].includes(req.method)) {
-    if (!req.is("application/json")) {
-      return res
-        .status(415)
-        .type("application/json")
-        .send({ error: "UNSUPPORTED_MEDIA_TYPE", message: "Use Content-Type: application/json" });
-    }
-  }
-  next();
-});
-
-// Health
-app.get("/api/health", (req, res) => {
-  res.json({ status: "ok", message: "Mini Brain service is running 🚀" });
-});
-
-// Config
-const pkg = require("./package.json");
-app.get("/api/config", (req, res) => {
-  const cfg = {
-    service: "mini-brain",
-    version: pkg.version,
-    provider: process.env.OPENAI_PROVIDER || "openai",
-    model: process.env.OPENAI_MODEL || "gpt-4o-mini",
-    requestTimeoutMs: Number(process.env.OPENAI_TIMEOUT_MS || 10000),
-    frontendOrigin:
-      process.env.FRONTEND_ORIGIN || process.env.ALLOWED_ORIGINS || "",
-    knowledgeDir: process.env.KNOWLEDGE_DIR || null,
-    hiveMind: String(process.env.ENABLE_HIVE_MIND).toLowerCase() === "true",
-    tenant: process.env.HIVE_MIND_GLOBAL_TENANT || "global",
-  };
-  res.type("application/json").status(200).send(cfg);
-});
-
-// Skills
-app.get("/api/skills/:tenantId", (req, res) => {
-  const tenantId = req.params.tenantId;
-  try {
-    const config = loadTenantConfig(tenantId);
-    res.json(config.skills);
-  } catch (err) {
-    console.error("Error loading skills:", err);
-    res.status(500).json({ error: "Failed to load skills" });
-  }
-});
-
-
-// Version check
-app.get("/api/version", (req, res) => {
-  res.json({
-    version: process.env.npm_package_version || "unknown",
-    commit: process.env.RENDER_GIT_COMMIT || "local-dev",
-  });
-});
-
-// --- Config constants ---
-const DEFAULT_TENANT = (process.env.HIVE_MIND_GLOBAL_TENANT || "global").toLowerCase();
-const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
-const OPENAI_TIMEOUT_MS = Number(process.env.OPENAI_TIMEOUT_MS || 10000);
-
-// --- DEV fallback: direct knowledge reader ---
 function readKnowledgeForTenant(tenant) {
   const dir = path.join(__dirname, "knowledge", tenant);
   if (!fs.existsSync(dir)) return null;
@@ -115,8 +45,125 @@ function readKnowledgeForTenant(tenant) {
   return obj;
 }
 
+function readPersonaForTenant(tenant) {
+  const p = path.join(__dirname, "knowledge", tenant, "persona.txt");
+  if (fs.existsSync(p)) {
+    try {
+      return fs.readFileSync(p, "utf8");
+    } catch (e) {
+      console.error("Failed to read persona for", tenant, e);
+    }
+  }
+  return "";
+}
 
-// Chat endpoint
+function readSkillsForTenant(tenant) {
+  const s = path.join(__dirname, "knowledge", tenant, "skills.json");
+  if (fs.existsSync(s)) {
+    try {
+      return JSON.parse(fs.readFileSync(s, "utf8"));
+    } catch (e) {
+      console.error("Failed to read skills for", tenant, e);
+    }
+  }
+  return { skills: [] };
+}
+
+// --- Config constants ---
+const DEFAULT_TENANT = (process.env.HIVE_MIND_GLOBAL_TENANT || "global").toLowerCase();
+const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
+const OPENAI_TIMEOUT_MS = Number(process.env.OPENAI_TIMEOUT_MS || 10000);
+const SSL_KEY_PATH = process.env.SSL_KEY_PATH || "ssl/key.pem";
+const SSL_CERT_PATH = process.env.SSL_CERT_PATH || "ssl/cert.pem";
+const PORT = process.env.PORT || 5050;
+
+// --- Express app ---
+const app = express();
+app.use(cors());
+app.use(express.json());
+app.use(express.static("public"));
+
+// Enforce JSON for API writes
+app.use((req, res, next) => {
+  if (
+    req.path.startsWith("/api") &&
+    ["POST", "PUT", "PATCH"].includes(req.method)
+  ) {
+    if (!req.is("application/json")) {
+      return res
+        .status(415)
+        .type("application/json")
+        .send({
+          error: "UNSUPPORTED_MEDIA_TYPE",
+          message: "Use Content-Type: application/json",
+        });
+    }
+  }
+  next();
+});
+
+// --- Endpoints ---
+app.get("/api/health", (req, res) => {
+  res.json({ status: "ok", message: "Mini Brain service is running 🚀" });
+});
+
+const pkg = require("./package.json");
+app.get("/api/config", (req, res) => {
+  const cfg = {
+    service: "mini-brain",
+    version: pkg.version,
+    provider: process.env.OPENAI_PROVIDER || "openai",
+    model: process.env.OPENAI_MODEL || "gpt-4o-mini",
+    requestTimeoutMs: Number(process.env.OPENAI_TIMEOUT_MS || 10000),
+    frontendOrigin:
+      process.env.FRONTEND_ORIGIN || process.env.ALLOWED_ORIGINS || "",
+    knowledgeDir: process.env.KNOWLEDGE_DIR || null,
+    hiveMind: String(process.env.ENABLE_HIVE_MIND).toLowerCase() === "true",
+    tenant: process.env.HIVE_MIND_GLOBAL_TENANT || "global",
+  };
+  res.type("application/json").status(200).send(cfg);
+});
+
+app.get("/api/skills/:tenantId", (req, res) => {
+  const tenantId = req.params.tenantId;
+  try {
+    const config = loadTenantConfig(tenantId);
+    res.json(config.skills);
+  } catch (err) {
+    console.error("Error loading skills:", err);
+    res.status(500).json({ error: "Failed to load skills" });
+  }
+});
+
+app.get("/api/version", (req, res) => {
+  res.json({
+    version: process.env.npm_package_version || "unknown",
+    commit: process.env.RENDER_GIT_COMMIT || "local-dev",
+  });
+});
+
+// --- Helper to build OpenAI messages ---
+function buildMessages(effectiveTenant, personaText, skillsSummary, facts, hiveMindContext, message) {
+  return [
+    {
+      role: "system",
+      content: `You are a helpful AI assistant for tenant: ${effectiveTenant}.
+
+${personaText ? `Persona:\n${personaText}\n\n` : ""}
+
+${skillsSummary}
+
+Tenant Facts (authoritative when relevant):
+${facts}
+
+Hive Mind Learnings (style only; do not override facts):
+${hiveMindContext}`,
+    },
+    { role: "user", content: message.trim() },
+  ];
+}
+
+// --- Chat endpoint ---
 app.post("/api/chat", async (req, res) => {
   try {
     let { message, tenantId, tenant, mode } = req.body || {};
@@ -135,42 +182,14 @@ app.post("/api/chat", async (req, res) => {
         .json({ error: "BAD_REQUEST", message: "Message is required" });
     }
 
-    // Tenant facts
-    let tenantData = kbIndex[effectiveTenant] || kbIndex[DEFAULT_TENANT] || null;
-
-// Fallback: direct file read if kbIndex is empty
-if (!tenantData || Object.keys(tenantData).length === 0) {
-  tenantData =
-    readKnowledgeForTenant(effectiveTenant) ||
-    readKnowledgeForTenant(DEFAULT_TENANT);
-}
-
-// --- Persona loader (reads persona.txt if present) ---
-function readPersonaForTenant(tenant) {
-  const p = path.join(__dirname, "knowledge", tenant, "persona.txt");
-  if (fs.existsSync(p)) {
-    try {
-      return fs.readFileSync(p, "utf8");
-    } catch (e) {
-      console.error("Failed to read persona for", tenant, e);
+    // Facts
+    let tenantData =
+      kbIndex[effectiveTenant] || kbIndex[DEFAULT_TENANT] || null;
+    if (!tenantData || Object.keys(tenantData).length === 0) {
+      tenantData =
+        readKnowledgeForTenant(effectiveTenant) ||
+        readKnowledgeForTenant(DEFAULT_TENANT);
     }
-  }
-  return "";
-}
-
-// --- Skills loader (reads skills.json if present) ---
-function readSkillsForTenant(tenant) {
-  const s = path.join(__dirname, "knowledge", tenant, "skills.json");
-  if (fs.existsSync(s)) {
-    try {
-      return JSON.parse(fs.readFileSync(s, "utf8"));
-    } catch (e) {
-      console.error("Failed to read skills for", tenant, e);
-    }
-  }
-  return { skills: [] };
-}
-
 
     const facts = tenantData
       ? Object.entries(tenantData)
@@ -178,69 +197,41 @@ function readSkillsForTenant(tenant) {
           .join("\n\n")
       : "No facts available for this tenant.";
 
-    console.log(
-      `📚 Facts for '${effectiveTenant}': ${tenantData ? "yes" : "no"} (bytes=${facts.length})`
-    );
+    const personaText = readPersonaForTenant(effectiveTenant) || "";
+    const skillsData = readSkillsForTenant(effectiveTenant);
+
+    let skillsSummary = "";
+    if (skillsData.skills && skillsData.skills.length > 0) {
+      skillsSummary =
+        "This tenant has structured skills:\n" +
+        skillsData.skills
+          .map(
+            (skill) =>
+              `- ${skill.intent} → triggers: ${skill.trigger.join(
+                ", "
+              )} → respond using ${skill.response_file}`
+          )
+          .join("\n") +
+        "\n\n";
+    }
 
     const hiveMindContext =
       "Best practices: Be friendly, concise, and helpful.";
 
-// --- Persona instructions ---
-const personaText = readPersonaForTenant(effectiveTenant);
-if (personaText) {
-  console.log(`🎭 Persona loaded for '${effectiveTenant}' (${personaText.length} chars)`);
-}
-
-// --- Skills instructions ---
-const skillsData = readSkillsForTenant(effectiveTenant);
-if (skillsData.skills.length > 0) {
-  console.log(`🛠️ Skills loaded for '${effectiveTenant}' (${skillsData.skills.length} skills)`);
-}
-
-let skillsSummary = "";
-if (skillsData.skills && skillsData.skills.length > 0) {
-  skillsSummary =
-    "This tenant has structured skills:\n" +
-    skillsData.skills
-      .map(
-        (skill) =>
-          `- ${skill.intent} → triggers: ${skill.trigger.join(
-            ", "
-          )} → respond using ${skill.response_file}`
-      )
-      .join("\n") +
-    "\n\n";
-}
-
-
-    // Call OpenAI
     const response = await axios.post(
       "https://api.openai.com/v1/chat/completions",
       {
         model: OPENAI_MODEL,
-        messages: [
-  {
-    role: "system",
-    content: `You are a helpful AI assistant for tenant: ${effectiveTenant}.
-
-${personaText ? `Persona:\n${personaText}\n\n` : ""}
-
-${skillsSummary}
-
-Tenant Facts (authoritative when relevant):
-${facts}
-
-Hive Mind Learnings (style only; do not override facts):
-${hiveMindContext}`,
-          },
-          { role: "user", content: message.trim() },
-        ],
+        messages: buildMessages(
+          effectiveTenant,
+          personaText,
+          skillsSummary,
+          facts,
+          hiveMindContext,
+          message
+        ),
         max_tokens: 80,
-        temperature: 0.6
-${hiveMindContext}`
-  },
-  { role: "user", content: message.trim() }
-],
+        temperature: 0.6,
       },
       {
         headers: {
@@ -251,7 +242,8 @@ ${hiveMindContext}`
       }
     );
 
-    const reply = response.data.choices?.[0]?.message?.content ?? "";
+    const reply =
+      response.data.choices?.[0]?.message?.content?.trim() || "";
     console.log("✅ OpenAI reply (len):", reply.length);
     return res.status(200).json({ reply });
   } catch (err) {
@@ -280,18 +272,17 @@ ${hiveMindContext}`
   }
 });
 
-// Explicit root route → always serve index.html
+// --- Static routes ---
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-// Catch-all for non-API routes
 app.get("*", (req, res, next) => {
-  if (req.path.startsWith("/api/")) return next(); // leave API routes alone
+  if (req.path.startsWith("/api/")) return next();
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-// --- Server Startup ---
+// --- Startup ---
 async function startServer() {
   await warmAllTenants();
   console.log("📚 Knowledge stores warmed:", Object.keys(kbIndex));
