@@ -1,6 +1,6 @@
 const API_BASE_URL = "/api/chat";
 
-// Map of industry IDs → display titles
+// Industry → Display Titles
 const INDUSTRIES = {
   restaurant: "Restaurant Assistant",
   retail: "Retail Assistant",
@@ -9,47 +9,38 @@ const INDUSTRIES = {
 };
 
 window.addEventListener("DOMContentLoaded", () => {
-  // --- DOM Elements ---
-  const placeholderBubble = document.getElementById("demo-placeholder-bubble");
-  const chatWindow = document.querySelector(".industry-chat");
-  const chatTitle = chatWindow.querySelector(".title");
-  const messagesContainer = document.getElementById("messages");
-  const userInput = document.getElementById("user-input");
-  const sendBtn = document.getElementById("send-btn");
+  const panel = document.getElementById("chat-panel");
+  const title = panel.querySelector(".title");
+  const messagesContainer = document.getElementById("chat-messages");
+  const userInput = document.getElementById("chat-input");
+  const sendBtn = document.getElementById("chat-send");
+  const closeBtn = document.getElementById("chat-close");
 
   let activeIndustry = null;
+  const chatHistories = Object.fromEntries(
+    Object.keys(INDUSTRIES).map((k) => [k, []])
+  );
 
-  // --- Store chat history per industry ---
-  const chatHistories = {
-    restaurant: [],
-    retail: [],
-    ecommerce: [],
-    medical: [],
-  };
-
-  // Render stored history for a given industry
+  // --- Render history ---
   function renderHistory(industry) {
     messagesContainer.innerHTML = "";
-    chatHistories[industry].forEach(({ sender, text, type }) => {
-      const div = document.createElement("div");
-      div.classList.add("cmc-bubble", type);
-      div.textContent = text;
-      messagesContainer.appendChild(div);
+    chatHistories[industry].forEach(({ text, type }) => {
+      appendMessage(text, type, false);
     });
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
   }
 
-  // Append message to current chat + history
-  function appendMessage(text, type) {
-    if (!activeIndustry) return;
+  // --- Append new message ---
+  function appendMessage(text, type, save = true) {
     const div = document.createElement("div");
-    div.classList.add("cmc-bubble", type);
+    div.classList.add("cmc-msg", type);
     div.textContent = text;
     messagesContainer.appendChild(div);
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
-    // Save to history
-    chatHistories[activeIndustry].push({ text, type });
+    if (save && activeIndustry) {
+      chatHistories[activeIndustry].push({ text, type });
+    }
   }
 
   // --- Send message ---
@@ -57,13 +48,12 @@ window.addEventListener("DOMContentLoaded", () => {
     const text = userInput.value.trim();
     if (!text || !activeIndustry) return;
 
-    appendMessage(text, "cmc-user");
+    appendMessage(text, "user");
     userInput.value = "";
-    userInput.focus();
 
-    // Temporary loading bubble
+    // Loading bubble
     const loading = document.createElement("div");
-    loading.classList.add("cmc-bubble", "cmc-bot");
+    loading.classList.add("cmc-msg", "bot");
     loading.textContent = `${INDUSTRIES[activeIndustry]} is typing…`;
     messagesContainer.appendChild(loading);
 
@@ -76,66 +66,46 @@ window.addEventListener("DOMContentLoaded", () => {
       const data = await res.json();
       messagesContainer.removeChild(loading);
 
-      if (data.error) {
-        appendMessage(`⚠️ ${data.error}`, "cmc-error");
-      } else {
-        appendMessage(
-          data.reply || data.answer || data.message || "⚠️ Unexpected response",
-          "cmc-bot"
-        );
-      }
+      appendMessage(
+        data.reply || data.answer || data.message || "⚠️ Unexpected response",
+        "bot"
+      );
     } catch (err) {
       messagesContainer.removeChild(loading);
-      appendMessage("⚠️ Could not reach server.", "cmc-error");
+      appendMessage("⚠️ Could not reach server.", "bot");
       console.error("Chat error:", err);
     }
   }
 
+  // --- Open chat ---
+  function openChat(industry) {
+    activeIndustry = industry;
+    title.textContent = INDUSTRIES[industry];
+    panel.classList.add("active");
+    renderHistory(industry);
+    userInput.focus();
+  }
+
+  // --- Close chat ---
+  function closeChat() {
+    panel.classList.remove("active");
+    activeIndustry = null;
+  }
+
+  // --- Wire up industry bubbles ---
+  document.querySelectorAll(".cmc-bubble[data-industry]").forEach((bubble) => {
+    bubble.addEventListener("click", () => {
+      const industry = bubble.dataset.industry;
+      openChat(industry);
+    });
+  });
+
+  // --- Wire up close button ---
+  closeBtn.addEventListener("click", closeChat);
+
+  // --- Wire up send ---
   sendBtn.addEventListener("click", sendMessage);
   userInput.addEventListener("keypress", (e) => {
     if (e.key === "Enter") sendMessage();
   });
-
-  // --- Industry Bubble Clicks ---
-  Object.keys(INDUSTRIES).forEach((industry) => {
-    const bubble = document.getElementById(industry);
-    if (!bubble) return;
-    bubble.addEventListener("click", () => {
-      activeIndustry = industry;
-      chatTitle.textContent = INDUSTRIES[industry];
-      openChat();
-      renderHistory(industry); // Load that industry’s chat
-    });
-  });
-
-  // --- Placeholder Bubble ---
-  if (placeholderBubble) {
-    placeholderBubble.addEventListener("click", () => {
-      if (!activeIndustry) {
-        // Default to Restaurant if none selected
-        activeIndustry = "restaurant";
-        chatTitle.textContent = INDUSTRIES[activeIndustry];
-      }
-      openChat();
-      renderHistory(activeIndustry);
-    });
-  }
-
-  // --- Close Button ---
-  document.querySelectorAll(".close-btn").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      chatWindow.classList.remove("show");
-      placeholderBubble.classList.remove("open");
-      userInput.blur();
-    });
-  });
-
-  // --- Helpers ---
-  function openChat() {
-    placeholderBubble.classList.add("open");
-    setTimeout(() => {
-      chatWindow.classList.add("show");
-      userInput.focus();
-    }, 250);
-  }
 });

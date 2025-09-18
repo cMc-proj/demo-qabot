@@ -5,48 +5,37 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>CMC Chat Widget Demo</title>
 
-  <!-- Styles + Scripts -->
   <link rel="stylesheet" href="style.css" />
   <script src="chat-widget.js" defer></script>
 </head>
 <body>
   <!-- Header -->
-  <header class="page-header">
-    <h1>CMC Chat Widget Demo</h1>
-    <p>Explore how the AI chat bubbles work across 4 industries.</p>
+  <header class="hero">
+    <h1 class="logo">CMC Chat Widget Demo</h1>
+    <p class="tagline">Explore how the AI chat bubbles work across 4 industries.</p>
   </header>
 
-  <!-- Industry selection -->
-  <main>
-    <section id="bubbles-container">
-      <button class="chat-bubble" data-industry="restaurant">🍽️ Restaurant</button>
-      <button class="chat-bubble" data-industry="retail">🛍️ Retail</button>
-      <button class="chat-bubble" data-industry="ecommerce">🛒 E-commerce</button>
-      <button class="chat-bubble" data-industry="medical">⚕️ Medical</button>
-    </section>
-
-    <section class="results">
-      <h2 class="results-header">Results</h2>
-      <div class="empty">Nothing here yet — select a bubble to start chatting.</div>
-      <div id="results-content"></div>
-    </section>
-  </main>
-
-  <!-- Footer -->
-  <footer class="footer">
-    © CMC. Built with love and 8px spacing.
-  </footer>
-
-  <!-- Docked Chat Widget (bottom-right) -->
-  <div id="industry-chat" class="industry-chat hidden">
-    <div class="industry-chat-header">
-      <span class="title">Industry Assistant</span>
-      <button id="close-chat">×</button>
+  <!-- Floating Dock + Panel -->
+  <div id="cmc-chat-root">
+    <!-- Industry bubbles -->
+    <div class="cmc-dock">
+      <div class="cmc-bubble" data-industry="restaurant" title="Restaurant">🍽️</div>
+      <div class="cmc-bubble" data-industry="retail" title="Retail">🛍️</div>
+      <div class="cmc-bubble" data-industry="ecommerce" title="E-commerce">💻</div>
+      <div class="cmc-bubble" data-industry="medical" title="Medical">⚕️</div>
     </div>
-    <div id="messages" class="messages"></div>
-    <div class="chat-input">
-      <input id="user-input" type="text" placeholder="Type your message..." />
-      <button id="send-btn">Send</button>
+
+    <!-- Chat panel -->
+    <div class="cmc-panel" id="chat-panel">
+      <div class="cmc-head" style="background:#2563eb">
+        <span class="title">Assistant</span>
+        <button id="chat-close" class="cmc-close">×</button>
+      </div>
+      <div class="cmc-messages" id="chat-messages"></div>
+      <div class="cmc-input">
+        <input type="text" id="chat-input" placeholder="Type your message..." />
+        <button id="chat-send">Send</button>
+      </div>
     </div>
   </div>
 </body>
