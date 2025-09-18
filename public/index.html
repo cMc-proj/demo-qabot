@@ -4,37 +4,36 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>CMC Chat Widget Demo</title>
-
   <link rel="stylesheet" href="style.css" />
   <script src="chat-widget.js" defer></script>
 </head>
 <body>
-  <!-- Header -->
+  <!-- ===== Header ===== -->
   <header class="hero">
     <h1 class="logo">CMC Chat Widget Demo</h1>
     <p class="tagline">Explore how the AI chat bubbles work across 4 industries.</p>
   </header>
 
-  <!-- Floating Dock + Panel -->
+  <!-- ===== Floating Dock + Chat Panel ===== -->
   <div id="cmc-chat-root">
-    <!-- Industry bubbles -->
+    <!-- Industry selection bubbles -->
     <div class="cmc-dock">
-      <div class="cmc-bubble" data-industry="restaurant" title="Restaurant">🍽️</div>
-      <div class="cmc-bubble" data-industry="retail" title="Retail">🛍️</div>
-      <div class="cmc-bubble" data-industry="ecommerce" title="E-commerce">💻</div>
-      <div class="cmc-bubble" data-industry="medical" title="Medical">⚕️</div>
+      <div id="restaurant" class="cmc-bubble" title="Restaurant">🍽️</div>
+      <div id="retail" class="cmc-bubble" title="Retail">🛍️</div>
+      <div id="ecommerce" class="cmc-bubble" title="E-commerce">💻</div>
+      <div id="medical" class="cmc-bubble" title="Medical">⚕️</div>
     </div>
 
-    <!-- Chat panel -->
+    <!-- Chat widget -->
     <div class="cmc-panel" id="chat-panel">
-      <div class="cmc-head" style="background:#2563eb">
-        <span class="title">Assistant</span>
-        <button id="chat-close" class="cmc-close">×</button>
+      <div class="cmc-head">
+        <div class="title">Industry Assistant</div>
+        <button class="cmc-close" id="chat-close">&times;</button>
       </div>
-      <div class="cmc-messages" id="chat-messages"></div>
+      <div class="cmc-messages" id="messages"></div>
       <div class="cmc-input">
-        <input type="text" id="chat-input" placeholder="Type your message..." />
-        <button id="chat-send">Send</button>
+        <input type="text" id="user-input" placeholder="Type your message..." />
+        <button id="send-btn">Send</button>
       </div>
     </div>
   </div>
