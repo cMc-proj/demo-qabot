@@ -1,123 +1,141 @@
-(() => {
-  // --- Config ---
-  const API_BASE_URL = "https://demo-qabot.onrender.com"; // update if your Render URL changes
-  const TENANT_ID = "default"; // later: set dynamically per business
+const API_BASE_URL = "/api/chat";
 
-  // --- Create Chat Bubble ---
-  const bubble = document.createElement("div");
-  bubble.id = "chat-bubble";
-  bubble.innerHTML = "💬";
-  Object.assign(bubble.style, {
-    position: "fixed",
-    bottom: "20px",
-    right: "20px",
-    width: "60px",
-    height: "60px",
-    background: "#2563eb",
-    color: "#fff",
-    borderRadius: "50%",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: "24px",
-    cursor: "pointer",
-    boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
-    zIndex: "9999",
-  });
-  document.body.appendChild(bubble);
+// Map of industry IDs → display titles
+const INDUSTRIES = {
+  restaurant: "Restaurant Assistant",
+  retail: "Retail Assistant",
+  ecommerce: "E-commerce Assistant",
+  medical: "Medical Assistant",
+};
 
-  // --- Create Chat Window ---
-  const chatWindow = document.createElement("div");
-  chatWindow.id = "chat-window";
-  Object.assign(chatWindow.style, {
-    position: "fixed",
-    bottom: "90px",
-    right: "20px",
-    width: "320px",
-    height: "420px",
-    background: "#fff",
-    border: "1px solid #ddd",
-    borderRadius: "12px",
-    boxShadow: "0 4px 16px rgba(0,0,0,0.2)",
-    display: "none",
-    flexDirection: "column",
-    overflow: "hidden",
-    fontFamily: "system-ui, sans-serif",
-    zIndex: "9999",
-  });
+window.addEventListener("DOMContentLoaded", () => {
+  // --- DOM Elements ---
+  const placeholderBubble = document.getElementById("demo-placeholder-bubble");
+  const chatWindow = document.querySelector(".industry-chat");
+  const chatTitle = chatWindow.querySelector(".title");
+  const messagesContainer = document.getElementById("messages");
+  const userInput = document.getElementById("user-input");
+  const sendBtn = document.getElementById("send-btn");
 
-  chatWindow.innerHTML = `
-    <div style="background:#2563eb; color:#fff; padding:10px; font-weight:bold; display:flex; justify-content:space-between; align-items:center;">
-      <span>Chat Assistant</span>
-      <button id="chat-close" style="background:none;border:none;color:#fff;font-size:18px;cursor:pointer;">✕</button>
-    </div>
-    <div id="chat-messages" style="flex:1; padding:10px; overflow-y:auto; font-size:14px; line-height:1.4;"></div>
-    <div style="display:flex; border-top:1px solid #ddd;">
-      <input id="chat-input" type="text" placeholder="Type a message..." 
-        style="flex:1; padding:10px; border:none; font-size:14px; outline:none;" />
-      <button id="chat-send" style="background:#2563eb;color:#fff;border:none;padding:0 16px;cursor:pointer;">Send</button>
-    </div>
-  `;
-  document.body.appendChild(chatWindow);
+  let activeIndustry = null;
 
-  // --- Elements ---
-  const chatMessages = chatWindow.querySelector("#chat-messages");
-  const chatInput = chatWindow.querySelector("#chat-input");
-  const chatSend = chatWindow.querySelector("#chat-send");
-  const chatClose = chatWindow.querySelector("#chat-close");
+  // --- Store chat history per industry ---
+  const chatHistories = {
+    restaurant: [],
+    retail: [],
+    ecommerce: [],
+    medical: [],
+  };
 
-  // --- Toggle Window ---
-  bubble.addEventListener("click", () => {
-    chatWindow.style.display = chatWindow.style.display === "none" ? "flex" : "none";
-    if (chatWindow.style.display === "flex") chatInput.focus();
-  });
-  chatClose.addEventListener("click", () => (chatWindow.style.display = "none"));
-
-  // --- Helpers ---
-  function appendMessage(sender, text) {
-    const msg = document.createElement("div");
-    msg.style.marginBottom = "8px";
-    msg.innerHTML = `<strong>${sender}:</strong> ${text}`;
-    chatMessages.appendChild(msg);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
+  // Render stored history for a given industry
+  function renderHistory(industry) {
+    messagesContainer.innerHTML = "";
+    chatHistories[industry].forEach(({ sender, text, type }) => {
+      const div = document.createElement("div");
+      div.classList.add("cmc-bubble", type);
+      div.textContent = text;
+      messagesContainer.appendChild(div);
+    });
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
   }
 
+  // Append message to current chat + history
+  function appendMessage(text, type) {
+    if (!activeIndustry) return;
+    const div = document.createElement("div");
+    div.classList.add("cmc-bubble", type);
+    div.textContent = text;
+    messagesContainer.appendChild(div);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+    // Save to history
+    chatHistories[activeIndustry].push({ text, type });
+  }
+
+  // --- Send message ---
   async function sendMessage() {
-    const text = chatInput.value.trim();
-    if (!text) return;
+    const text = userInput.value.trim();
+    if (!text || !activeIndustry) return;
 
-    appendMessage("You", text);
-    chatInput.value = "";
+    appendMessage(text, "cmc-user");
+    userInput.value = "";
+    userInput.focus();
 
-    // Show loading message
-    const loadingMsg = document.createElement("div");
-    loadingMsg.style.marginBottom = "8px";
-    loadingMsg.innerHTML = `<em>Assistant is typing...</em>`;
-    chatMessages.appendChild(loadingMsg);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
+    // Temporary loading bubble
+    const loading = document.createElement("div");
+    loading.classList.add("cmc-bubble", "cmc-bot");
+    loading.textContent = `${INDUSTRIES[activeIndustry]} is typing…`;
+    messagesContainer.appendChild(loading);
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/chat`, {
+      const res = await fetch(API_BASE_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text, tenantId: TENANT_ID }),
+        body: JSON.stringify({ message: text, tenantId: activeIndustry }),
       });
-
-      if (!res.ok) throw new Error(`Server error: ${res.status}`);
       const data = await res.json();
+      messagesContainer.removeChild(loading);
 
-      chatMessages.removeChild(loadingMsg);
-      appendMessage("Assistant", data.reply || "⚠️ No reply received.");
+      if (data.error) {
+        appendMessage(`⚠️ ${data.error}`, "cmc-error");
+      } else {
+        appendMessage(
+          data.reply || data.answer || data.message || "⚠️ Unexpected response",
+          "cmc-bot"
+        );
+      }
     } catch (err) {
+      messagesContainer.removeChild(loading);
+      appendMessage("⚠️ Could not reach server.", "cmc-error");
       console.error("Chat error:", err);
-      chatMessages.removeChild(loadingMsg);
-      appendMessage("Assistant", "⚠️ Something went wrong. Please try again.");
     }
   }
 
-  // --- Send on button click or Enter ---
-  chatSend.addEventListener("click", sendMessage);
-  chatInput.addEventListener("keypress", (e) => {
+  sendBtn.addEventListener("click", sendMessage);
+  userInput.addEventListener("keypress", (e) => {
     if (e.key === "Enter") sendMessage();
   });
-})();
+
+  // --- Industry Bubble Clicks ---
+  Object.keys(INDUSTRIES).forEach((industry) => {
+    const bubble = document.getElementById(industry);
+    if (!bubble) return;
+    bubble.addEventListener("click", () => {
+      activeIndustry = industry;
+      chatTitle.textContent = INDUSTRIES[industry];
+      openChat();
+      renderHistory(industry); // Load that industry’s chat
+    });
+  });
+
+  // --- Placeholder Bubble ---
+  if (placeholderBubble) {
+    placeholderBubble.addEventListener("click", () => {
+      if (!activeIndustry) {
+        // Default to Restaurant if none selected
+        activeIndustry = "restaurant";
+        chatTitle.textContent = INDUSTRIES[activeIndustry];
+      }
+      openChat();
+      renderHistory(activeIndustry);
+    });
+  }
+
+  // --- Close Button ---
+  document.querySelectorAll(".close-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      chatWindow.classList.remove("show");
+      placeholderBubble.classList.remove("open");
+      userInput.blur();
+    });
+  });
+
+  // --- Helpers ---
+  function openChat() {
+    placeholderBubble.classList.add("open");
+    setTimeout(() => {
+      chatWindow.classList.add("show");
+      userInput.focus();
+    }, 250);
+  }
+});

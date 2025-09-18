@@ -231,6 +231,12 @@ Tenant Facts (authoritative when relevant):
 ${facts}
 
 Hive Mind Learnings (style only; do not override facts):
+${hiveMindContext}`,
+          },
+          { role: "user", content: message.trim() },
+        ],
+        max_tokens: 80,
+        temperature: 0.6
 ${hiveMindContext}`
   },
   { role: "user", content: message.trim() }
